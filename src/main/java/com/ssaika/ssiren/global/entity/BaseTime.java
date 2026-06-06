@@ -23,21 +23,21 @@ public abstract class BaseTime {
     protected LocalDateTime createdAt;
 
     @LastModifiedDate
-    @Column(name = "modified_at", nullable = false)
-    protected LocalDateTime modifiedAt;
+    @Column(name = "updated_at", nullable = false)
+    protected LocalDateTime updatedAt;
 
     @PrePersist
     protected void onCreate() {
         if (createdAt == null) {
             createdAt = LocalDateTime.now();
         }
-        if (modifiedAt == null) {
-            modifiedAt = createdAt;
+        if (updatedAt == null) {
+            updatedAt = createdAt;
         }
     }
 
     @PreUpdate
     protected void onUpdate() {
-        modifiedAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
     }
 }
