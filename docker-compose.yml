@@ -1,0 +1,40 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: ssiren-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-ssiren}
+      POSTGRES_USER: ${POSTGRES_USER:-ssiren}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ssiren}
+    ports:
+      - "5432:5432"
+    volumes:
+      - ssiren-db-data:/var/lib/postgresql/data
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+    container_name: ssiren-backend
+    mem_limit: 512m
+    env_file:
+      - .env
+    environment:
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL:-jdbc:postgresql://postgres:5432/ssiren}
+      JAVA_TOOL_OPTIONS: >-
+        -XX:InitialRAMPercentage=50.0
+        -XX:MaxRAMPercentage=75.0
+        -XX:+ExitOnOutOfMemoryError
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  ssiren-db-data:
