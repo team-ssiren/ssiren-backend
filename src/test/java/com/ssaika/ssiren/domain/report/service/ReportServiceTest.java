@@ -109,6 +109,20 @@ class ReportServiceTest {
         verify(reportReactionLogRepository, never()).findByReport_IdOrderByCreatedAtAsc(any());
     }
 
+    @Test
+    void deleteMyReportThrowsExceptionWhenReportDoesNotExist() {
+        when(reportRepository.findByIdAndUser_Id(1L, 1L))
+            .thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> reportService.deleteMyReport(1L, 1L))
+            .isInstanceOf(CustomException.class)
+            .hasMessage("?쒕낫瑜?李얠쓣 ???놁뒿?덈떎.");
+
+        verify(reportImageRepository, never()).findByReport_IdOrderBySortOrderAsc(any());
+        verify(reportRepository, never()).delete(any(Report.class));
+        verify(reportRepository, never()).flush();
+    }
+
     private Specification<Report> anyReportSpecification() {
         return any();
     }

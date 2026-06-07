@@ -6,7 +6,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.ssaika.ssiren.domain.report.dto.response.MyReportDetailResponse;
 import com.ssaika.ssiren.domain.report.dto.response.MyReportResponse;
 import com.ssaika.ssiren.domain.report.dto.request.MyReportUpdateRequest;
+import com.ssaika.ssiren.domain.report.dto.response.MyReportDeleteResponse;
 import com.ssaika.ssiren.domain.report.dto.response.MyReportUpdateResponse;
+import com.ssaika.ssiren.domain.report.entity.IssueGroup;
 import com.ssaika.ssiren.domain.report.entity.Report;
 import com.ssaika.ssiren.domain.report.entity.ReportCategory;
 import com.ssaika.ssiren.domain.report.entity.ReportImage;
@@ -127,6 +129,29 @@ public class ReportService {
         reportRepository.flush();
 
         return MyReportUpdateResponse.from(report, objectMapper);
+    }
+
+    @Transactional
+    public MyReportDeleteResponse deleteMyReport(Long userId, Long reportId) {
+        log.info("Delete my report. userId={}, reportId={}", userId, reportId);
+
+        Report report = reportRepository.findByIdAndUser_Id(reportId, userId)
+            .orElseThrow(() -> new CustomException("?쒕낫瑜?李얠쓣 ???놁뒿?덈떎.", ErrorCode.NOT_FOUND));
+        List<ReportImage> reportImages = reportImageRepository.findByReport_IdOrderBySortOrderAsc(reportId);
+        IssueGroup issueGroup = report.getIssueGroup();
+
+        issueGroup.decreaseReportCount();
+        MyReportDeleteResponse response = MyReportDeleteResponse.from(
+            report,
+            reportImages,
+            issueGroup,
+            objectMapper
+        );
+
+        reportRepository.delete(report);
+        reportRepository.flush();
+
+        return response;
     }
 
     private LocalDateTime parseFromDateTime(String value) {

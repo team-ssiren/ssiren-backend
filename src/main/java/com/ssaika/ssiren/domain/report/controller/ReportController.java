@@ -1,6 +1,7 @@
 package com.ssaika.ssiren.domain.report.controller;
 
 import com.ssaika.ssiren.domain.report.dto.request.MyReportUpdateRequest;
+import com.ssaika.ssiren.domain.report.dto.response.MyReportDeleteResponse;
 import com.ssaika.ssiren.domain.report.dto.response.MyReportDetailResponse;
 import com.ssaika.ssiren.domain.report.dto.response.MyReportResponse;
 import com.ssaika.ssiren.domain.report.dto.response.MyReportUpdateResponse;
@@ -15,6 +16,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -61,5 +63,12 @@ public class ReportController {
         MyReportUpdateResponse response = reportService.updateMyReport(TEST_USER_ID, reportId, request);
 
         return ResponseEntity.ok(BaseResponse.success("내 제보 수정 성공", response));
+    }
+    @DeleteMapping("/me/{reportId}")
+    public ResponseEntity<BaseResponse<MyReportDeleteResponse>> deleteMyReport(
+        @PathVariable Long reportId) {
+        MyReportDeleteResponse response = reportService.deleteMyReport(TEST_USER_ID, reportId);
+
+        return ResponseEntity.ok(BaseResponse.success("내 제보 삭제 성공", response));
     }
 }

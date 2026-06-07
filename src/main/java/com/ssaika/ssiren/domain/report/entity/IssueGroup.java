@@ -63,4 +63,10 @@ public class IssueGroup extends BaseTime {
 
     @Column(name = "risk_score", nullable = false, precision = 5, scale = 2)
     private BigDecimal riskScore;
+
+    public void decreaseReportCount() {
+        if (reportCount > 0) {
+            reportCount--;
+        }
+    }
 }
