@@ -6,9 +6,18 @@ spring:
     username: ${SPRING_DATASOURCE_USERNAME:ssiren}
     password: ${SPRING_DATASOURCE_PASSWORD:ssiren}
     driver-class-name: org.postgresql.Driver
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
   jpa:
     hibernate:
       ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:validate}
     properties:
       hibernate:
         format_sql: true
+
+jwt:
+  secret: ${JWT_SECRET}
+  access-expiry: ${JWT_ACCESS_EXPIRY:1800000}
+  refresh-expiry: ${JWT_REFRESH_EXPIRY:604800000}
