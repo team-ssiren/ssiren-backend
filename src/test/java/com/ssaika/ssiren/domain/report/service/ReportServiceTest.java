@@ -8,6 +8,7 @@ import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssaika.ssiren.domain.report.entity.Report;
+import com.ssaika.ssiren.domain.report.repository.ReportCategoryRepository;
 import com.ssaika.ssiren.domain.report.repository.ReportImageRepository;
 import com.ssaika.ssiren.domain.report.repository.ReportReactionLogRepository;
 import com.ssaika.ssiren.domain.report.repository.ReportRepository;
@@ -33,6 +34,9 @@ class ReportServiceTest {
     private ReportRepository reportRepository;
 
     @Mock
+    private ReportCategoryRepository reportCategoryRepository;
+
+    @Mock
     private ReportImageRepository reportImageRepository;
 
     @Mock
@@ -47,6 +51,7 @@ class ReportServiceTest {
     void setUp() {
         reportService = new ReportService(
             reportRepository,
+            reportCategoryRepository,
             reportImageRepository,
             reportStatusHistoryRepository,
             reportReactionLogRepository,

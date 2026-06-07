@@ -1,12 +1,18 @@
 package com.ssaika.ssiren.domain.report.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.ssaika.ssiren.domain.report.dto.response.MyReportDetailResponse;
 import com.ssaika.ssiren.domain.report.dto.response.MyReportResponse;
+import com.ssaika.ssiren.domain.report.dto.request.MyReportUpdateRequest;
+import com.ssaika.ssiren.domain.report.dto.response.MyReportUpdateResponse;
 import com.ssaika.ssiren.domain.report.entity.Report;
+import com.ssaika.ssiren.domain.report.entity.ReportCategory;
 import com.ssaika.ssiren.domain.report.entity.ReportImage;
 import com.ssaika.ssiren.domain.report.entity.ReportReactionLog;
 import com.ssaika.ssiren.domain.report.entity.ReportStatusHistory;
+import com.ssaika.ssiren.domain.report.repository.ReportCategoryRepository;
 import com.ssaika.ssiren.domain.report.repository.ReportImageRepository;
 import com.ssaika.ssiren.domain.report.repository.ReportReactionLogRepository;
 import com.ssaika.ssiren.domain.report.repository.ReportRepository;
@@ -37,6 +43,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class ReportService {
 
     private final ReportRepository reportRepository;
+    private final ReportCategoryRepository reportCategoryRepository;
     private final ReportImageRepository reportImageRepository;
     private final ReportStatusHistoryRepository reportStatusHistoryRepository;
     private final ReportReactionLogRepository reportReactionLogRepository;
@@ -99,6 +106,29 @@ public class ReportService {
         );
     }
 
+    @Transactional
+    public MyReportUpdateResponse updateMyReport(
+        Long userId,
+        Long reportId,
+        MyReportUpdateRequest request) {
+        log.info("Update my report. userId={}, reportId={}", userId, reportId);
+
+        Report report = reportRepository.findByIdAndUser_Id(reportId, userId)
+            .orElseThrow(() -> new CustomException("제보를 찾을 수 없습니다.", ErrorCode.NOT_FOUND));
+        validateUpdatableReport(report);
+
+        ReportCategory category = getReportCategory(request.categoryId());
+        report.update(
+            request.title(),
+            convertContents(request.contents()),
+            request.visibility(),
+            category
+        );
+        reportRepository.flush();
+
+        return MyReportUpdateResponse.from(report, objectMapper);
+    }
+
     private LocalDateTime parseFromDateTime(String value) {
         return parseDateTime(value, LocalTime.MIN);
     }
@@ -126,6 +156,36 @@ public class ReportService {
     private void validateDateRange(LocalDateTime from, LocalDateTime to) {
         if (from != null && to != null && from.isAfter(to)) {
             throw new CustomException("조회 시작일은 종료일보다 늦을 수 없습니다.", ErrorCode.INVALID_PARAMETER);
+        }
+    }
+
+    private void validateUpdatableReport(Report report) {
+        if (report.getStatus() != ReportStatus.SUBMITTED) {
+            throw new CustomException("접수 이후 상태의 제보는 수정할 수 없습니다.", ErrorCode.FORBIDDEN);
+        }
+    }
+
+    private ReportCategory getReportCategory(Long categoryId) {
+        if (categoryId == null) {
+            return null;
+        }
+
+        return reportCategoryRepository.findWithDepartmentById(categoryId)
+            .orElseThrow(() -> new CustomException("카테고리를 찾을 수 없습니다.", ErrorCode.NOT_FOUND));
+    }
+
+    private String convertContents(JsonNode contents) {
+        if (contents == null) {
+            return null;
+        }
+        if (!contents.isObject()) {
+            throw new CustomException("제보 본문은 JSON 객체여야 합니다.", ErrorCode.INVALID_FORMAT);
+        }
+
+        try {
+            return objectMapper.writeValueAsString(contents);
+        } catch (JsonProcessingException e) {
+            throw new CustomException("제보 본문 형식이 올바르지 않습니다.", ErrorCode.INVALID_FORMAT);
         }
     }
 
