@@ -1,11 +1,118 @@
 package com.ssaika.ssiren.domain.report.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ssaika.ssiren.domain.report.dto.response.MyReportResponse;
+import com.ssaika.ssiren.domain.report.entity.Report;
+import com.ssaika.ssiren.domain.report.entity.ReportImage;
+import com.ssaika.ssiren.domain.report.repository.ReportImageRepository;
+import com.ssaika.ssiren.domain.report.repository.ReportRepository;
+import com.ssaika.ssiren.domain.report.repository.ReportSpecification;
+import com.ssaika.ssiren.global.enums.ReportStatus;
+import com.ssaika.ssiren.global.exception.CustomException;
+import com.ssaika.ssiren.global.exception.ErrorCode;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.format.DateTimeParseException;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class ReportService {
+
+    private final ReportRepository reportRepository;
+    private final ReportImageRepository reportImageRepository;
+    private final ObjectMapper objectMapper;
+
+    public Page<MyReportResponse> getMyReports(
+        Long userId,
+        ReportStatus status,
+        Long categoryId,
+        String from,
+        String to,
+        Pageable pageable) {
+        LocalDateTime fromDateTime = parseFromDateTime(from);
+        LocalDateTime toDateTime = parseToDateTime(to);
+        validateDateRange(fromDateTime, toDateTime);
+        log.info(
+            "Get my reports. userId={}, status={}, categoryId={}, from={}, to={}, page={}, size={}",
+            userId,
+            status,
+            categoryId,
+            fromDateTime,
+            toDateTime,
+            pageable.getPageNumber(),
+            pageable.getPageSize()
+        );
+
+        Specification<Report> specification = ReportSpecification.belongsToUser(userId)
+            .and(ReportSpecification.hasStatus(status))
+            .and(ReportSpecification.hasCategory(categoryId))
+            .and(ReportSpecification.createdAtFrom(fromDateTime))
+            .and(ReportSpecification.createdAtTo(toDateTime));
+
+        Page<Report> reports = reportRepository.findAll(specification, pageable);
+        Map<Long, List<ReportImage>> reportImages = getReportImages(reports.getContent());
+
+        return reports.map(report -> MyReportResponse.from(
+            report,
+            reportImages.getOrDefault(report.getId(), List.of()),
+            objectMapper
+        ));
+    }
+
+    private LocalDateTime parseFromDateTime(String value) {
+        return parseDateTime(value, LocalTime.MIN);
+    }
+
+    private LocalDateTime parseToDateTime(String value) {
+        return parseDateTime(value, LocalTime.MAX);
+    }
+
+    private LocalDateTime parseDateTime(String value, LocalTime defaultTime) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+
+        try {
+            return LocalDateTime.parse(value);
+        } catch (DateTimeParseException e) {
+            try {
+                return LocalDate.parse(value).atTime(defaultTime);
+            } catch (DateTimeParseException ignored) {
+                throw new CustomException("날짜 형식이 올바르지 않습니다.", ErrorCode.INVALID_FORMAT);
+            }
+        }
+    }
+
+    private void validateDateRange(LocalDateTime from, LocalDateTime to) {
+        if (from != null && to != null && from.isAfter(to)) {
+            throw new CustomException("조회 시작일은 종료일보다 늦을 수 없습니다.", ErrorCode.INVALID_PARAMETER);
+        }
+    }
+
+    private Map<Long, List<ReportImage>> getReportImages(List<Report> reports) {
+        List<Long> reportIds = reports.stream()
+            .map(Report::getId)
+            .toList();
+
+        if (reportIds.isEmpty()) {
+            return Map.of();
+        }
+
+        return reportImageRepository.findByReport_IdInOrderByReport_IdAscSortOrderAsc(reportIds)
+            .stream()
+            .collect(Collectors.groupingBy(reportImage -> reportImage.getReport().getId()));
+    }
 }
