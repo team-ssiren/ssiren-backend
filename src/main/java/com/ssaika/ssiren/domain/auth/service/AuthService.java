@@ -4,12 +4,15 @@ import com.ssaika.ssiren.domain.auth.client.OAuthClient;
 import com.ssaika.ssiren.domain.auth.client.OAuthClient.OAuthUserProfile;
 import com.ssaika.ssiren.domain.auth.dto.response.TokenResponse;
 import com.ssaika.ssiren.domain.user.entity.User;
+import com.ssaika.ssiren.domain.user.entity.UserConsent;
+import com.ssaika.ssiren.domain.user.repository.UserConsentRepository;
 import com.ssaika.ssiren.domain.user.repository.UserRepository;
 import com.ssaika.ssiren.global.exception.CustomException;
 import com.ssaika.ssiren.global.exception.ErrorCode;
 import com.ssaika.ssiren.global.security.JwtProvider;
 import com.ssaika.ssiren.global.security.RefreshTokenRepository;
 import java.util.List;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,6 +23,7 @@ public class AuthService {
 
     private final List<OAuthClient> oauthClients;
     private final UserRepository userRepository;
+    private final UserConsentRepository userConsentRepository;
     private final JwtProvider jwtProvider;
     private final RefreshTokenRepository refreshTokenRepository;
 
@@ -28,10 +32,10 @@ public class AuthService {
         OAuthClient client = findClient(provider);
         OAuthUserProfile userProfile = client.getUserProfile(providerToken);
 
-        boolean isNewUser = userRepository.findByEmail(userProfile.email()).isEmpty();
-        User user = userRepository.findByEmail(userProfile.email())
-            .orElseGet(() -> userRepository.save(
-                User.createKakaoUser(userProfile.email(), userProfile.nickname())));
+        Optional<User> existingUser = userRepository.findByEmail(userProfile.email());
+        boolean isNewUser = existingUser.isEmpty();
+        User user = existingUser.orElseGet(() -> createUserWithDefaultConsent(userProfile));
+        ensureDefaultConsent(user);
 
         return issueTokens(user.getId(), isNewUser);
     }
@@ -69,6 +73,20 @@ public class AuthService {
             .findFirst()
             .orElseThrow(() -> new CustomException(ErrorCode.UNSUPPORTED_PROVIDER.getMessage(),
                 ErrorCode.UNSUPPORTED_PROVIDER));
+    }
+
+    private User createUserWithDefaultConsent(OAuthUserProfile userProfile) {
+        User user = userRepository.save(
+            User.createKakaoUser(userProfile.email(), userProfile.nickname()));
+        userConsentRepository.save(UserConsent.create(user, false, false));
+
+        return user;
+    }
+
+    private void ensureDefaultConsent(User user) {
+        if (userConsentRepository.findByUserId(user.getId()).isEmpty()) {
+            userConsentRepository.save(UserConsent.create(user, false, false));
+        }
     }
 
     private TokenResponse issueTokens(Long userId, boolean isNewUser) {
