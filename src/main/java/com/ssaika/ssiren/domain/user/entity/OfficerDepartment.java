@@ -1,5 +1,6 @@
-package com.ssaika.ssiren.domain.agency.entity;
+package com.ssaika.ssiren.domain.user.entity;
 
+import com.ssaika.ssiren.domain.agency.entity.Department;
 import com.ssaika.ssiren.global.entity.BaseTime;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -15,38 +16,27 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder(access = AccessLevel.PRIVATE)
-@Table(name = "agencies")
-public class Agency extends BaseTime {
+@Table(name = "officer_departments")
+public class OfficerDepartment extends BaseTime {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "agency_name", nullable = false, length = 100)
-    private String agencyName;
-
-    @Column(nullable = false, length = 20)
-    private String sido;
-
-    @Column(nullable = false, length = 20)
-    private String sigungu;
-
-    @Column(nullable = false, length = 20)
-    private String eupmyeondong;
-
-    @Column(nullable = false)
-    private String address;
-
-    @Column(nullable = false, length = 30)
-    private String phone;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "agency_type_id", nullable = false)
-    private AgencyType agencyType;
+    @JoinColumn(name = "department_id", nullable = false)
+    private Department department;
 }

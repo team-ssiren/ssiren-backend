@@ -27,13 +27,10 @@ public class Department {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "agency_name", nullable = false, length = 100)
-    private String agencyName;
-
     @Column(nullable = false, length = 20)
     private String name;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "agency_id", nullable = false)
-    private Agency agency;
+    @JoinColumn(name = "agency_type_id", nullable = false)
+    private AgencyType agencyType;
 }
