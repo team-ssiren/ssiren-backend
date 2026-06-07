@@ -1,5 +1,6 @@
 package com.ssaika.ssiren.domain.report.entity;
 
+import com.ssaika.ssiren.domain.agency.entity.Department;
 import com.ssaika.ssiren.global.entity.BaseTime;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -30,8 +31,18 @@ public class ReportCategory extends BaseTime {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // AI 반환 코드
+    @Column(name = "category_code", nullable = false, unique = true, length = 150)
+    private String categoryCode;
+
+    // 민원분류명
     @Column(name = "category_name", nullable = false, length = 50)
     private String categoryName;
+
+    // 기본 담당 부서
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "department_id", nullable = false)
+    private Department department;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_category_id")

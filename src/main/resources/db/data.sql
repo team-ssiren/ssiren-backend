@@ -7,40 +7,64 @@ VALUES
 
 
 -- 부서
-INSERT INTO departments (id, agency_name, name, agency_type_id)
+INSERT INTO departments (id, name, agency_type_id)
 VALUES
-    (1, '지자체', '교통행정과', 1),
-    (2, '지자체', '도로관리과', 1),
-    (3, '지자체', '청소행정과', 1),
-    (4, '지자체', '환경과', 1),
-    (5, '지자체', '도시안전과', 1),
-    (6, '지자체', '시설관리과', 1),
-    (7, '경찰', '관할 지구대', 2),
-    (8, '지자체', '복지정책과', 1),
-    (9, '소방', '119안전센터', 3),
-    (10, '지자체', '민원실', 1);
+    (1,  '교통행정과', 1),
+    (2,  '도로관리과', 1),
+    (3,  '청소행정과', 1),
+    (4,  '환경과', 1),
+    (5,  '도시안전과', 1),
+    (6,  '시설관리과', 1),
+    (7,  '관할 지구대', 2),
+    (8,  '복지정책과', 1),
+    (9,  '119안전센터', 3),
+    (10, '민원실', 1);
 
 
--- 민원 카테고리
-INSERT INTO complaint_categories (
+-- 카테고리 대분류
+INSERT INTO report_categories (
     id,
     category_code,
-    name,
-    category_group,
-    department_id
+    category_name,
+    department_id,
+    parent_category_id
 )
 VALUES
-    (1, 'ILLEGAL_PARKING', '불법주정차', 'TRAFFIC', 1),
-    (2, 'ROAD_DAMAGE', '도로 파손', 'TRAFFIC', 2),
-    (3, 'TRASH_DUMPING', '쓰레기 무단투기', 'ENVIRONMENT', 3),
-    (4, 'ANIMAL_CARCASS', '동물 사체', 'ENVIRONMENT', 3),
-    (5, 'NOISE', '소음', 'ENVIRONMENT', 4),
-    (6, 'STREETLIGHT', '가로등 고장', 'FACILITY', 5),
-    (7, 'DANGEROUS_FACILITY', '위험 시설물', 'FACILITY', 6),
-    (8, 'FALL_RISK', '낙상 위험', 'LIFE_INCONVENIENCE', 6),
-    (9, 'DRUNK_PERSON', '주취자', 'PUBLIC_SAFETY', 7),
-    (10, 'YOUTH_RISK', '청소년 위험', 'PUBLIC_SAFETY', 7),
-    (11, 'SUSPICIOUS', '수상한 상황', 'PUBLIC_SAFETY', 7),
-    (12, 'HOMELESS', '노숙', 'WELFARE', 8),
-    (13, 'FIRE_EMERGENCY', '화재/응급', 'DISASTER_SAFETY', 9),
-    (14, 'ETC_OTHER', '기타', 'ETC', 10);
+    (1, 'TRAFFIC', '교통', 1, NULL),
+    (2, 'ENVIRONMENT', '환경', 4, NULL),
+    (3, 'FACILITY', '시설물', 6, NULL),
+    (4, 'LIFE_INCONVENIENCE', '생활불편', 6, NULL),
+    (5, 'PUBLIC_SAFETY', '치안', 7, NULL),
+    (6, 'WELFARE', '복지', 8, NULL),
+    (7, 'DISASTER_SAFETY', '재난안전', 9, NULL),
+    (8, 'ETC', '기타', 10, NULL);
+
+
+-- 카테고리 소분류
+-- AI 반환 categoryCode
+INSERT INTO report_categories (
+    id,
+    category_code,
+    category_name,
+    department_id,
+    parent_category_id
+)
+VALUES
+    (9,  'ILLEGAL_PARKING', '불법주정차', 1, 1),
+    (10, 'ROAD_DAMAGE', '도로 파손', 2, 1),
+
+    (11, 'TRASH_DUMPING', '쓰레기 무단투기', 3, 2),
+    (12, 'ANIMAL_CARCASS', '동물 사체', 3, 2),
+    (13, 'NOISE', '소음', 4, 2),
+
+    (14, 'STREETLIGHT', '가로등 고장', 5, 3),
+    (15, 'DANGEROUS_FACILITY', '위험 시설물', 6, 3),
+
+    (16, 'FALL_RISK', '낙상 위험', 6, 4),
+
+    (17, 'DRUNK_PERSON', '주취자', 7, 5),
+    (18, 'YOUTH_RISK', '청소년 위험', 7, 5),
+    (19, 'SUSPICIOUS', '수상한 상황', 7, 5),
+    (20, 'HOMELESS', '노숙', 8, 6),
+    (21, 'FIRE_EMERGENCY', '화재/응급', 9, 7),
+    (22, 'ETC_OTHER', '기타', 10, 8);
