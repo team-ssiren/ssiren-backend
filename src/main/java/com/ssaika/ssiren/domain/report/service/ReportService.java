@@ -21,6 +21,8 @@ import com.ssaika.ssiren.domain.report.repository.ReportRepository;
 import com.ssaika.ssiren.domain.report.repository.ReportSpecification;
 import com.ssaika.ssiren.domain.report.repository.ReportStatusHistoryRepository;
 import com.ssaika.ssiren.global.enums.ReportStatus;
+import com.ssaika.ssiren.global.enums.ReportVisibility;
+import com.ssaika.ssiren.domain.report.dto.response.ReportListResponse;
 import com.ssaika.ssiren.global.exception.CustomException;
 import com.ssaika.ssiren.global.exception.ErrorCode;
 import java.time.LocalDate;
@@ -50,6 +52,52 @@ public class ReportService {
     private final ReportStatusHistoryRepository reportStatusHistoryRepository;
     private final ReportReactionLogRepository reportReactionLogRepository;
     private final ObjectMapper objectMapper;
+
+    public Page<ReportListResponse> getReports(
+        ReportStatus status,
+        Long categoryId,
+        String sido,
+        String sigungu,
+        String eupmyeondong,
+        String from,
+        String to,
+        Pageable pageable) {
+        LocalDateTime fromDateTime = parseFromDateTime(from);
+        LocalDateTime toDateTime = parseToDateTime(to);
+        validateDateRange(fromDateTime, toDateTime);
+        log.info(
+            "Get public reports. status={}, categoryId={}, sido={}, sigungu={}, eupmyeondong={}, "
+                + "from={}, to={}, page={}, size={}",
+            status,
+            categoryId,
+            sido,
+            sigungu,
+            eupmyeondong,
+            fromDateTime,
+            toDateTime,
+            pageable.getPageNumber(),
+            pageable.getPageSize()
+        );
+
+        Specification<Report> specification = ReportSpecification.hasVisibility(ReportVisibility.PUBLIC)
+            .and(ReportSpecification.isNotDeleted())
+            .and(ReportSpecification.hasStatus(status))
+            .and(ReportSpecification.hasCategory(categoryId))
+            .and(ReportSpecification.hasSido(sido))
+            .and(ReportSpecification.hasSigungu(sigungu))
+            .and(ReportSpecification.hasEupmyeondong(eupmyeondong))
+            .and(ReportSpecification.createdAtFrom(fromDateTime))
+            .and(ReportSpecification.createdAtTo(toDateTime));
+
+        Page<Report> reports = reportRepository.findAll(specification, pageable);
+        Map<Long, List<ReportImage>> reportImages = getReportImages(reports.getContent());
+
+        return reports.map(report -> ReportListResponse.from(
+            report,
+            reportImages.getOrDefault(report.getId(), List.of()),
+            objectMapper
+        ));
+    }
 
     public Page<MyReportResponse> getMyReports(
         Long userId,

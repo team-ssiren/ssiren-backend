@@ -5,6 +5,7 @@ import com.ssaika.ssiren.domain.report.dto.response.MyReportDeleteResponse;
 import com.ssaika.ssiren.domain.report.dto.response.MyReportDetailResponse;
 import com.ssaika.ssiren.domain.report.dto.response.MyReportResponse;
 import com.ssaika.ssiren.domain.report.dto.response.MyReportUpdateResponse;
+import com.ssaika.ssiren.domain.report.dto.response.ReportListResponse;
 import com.ssaika.ssiren.domain.report.service.ReportService;
 import com.ssaika.ssiren.global.dto.BaseResponse;
 import com.ssaika.ssiren.global.dto.PageResponseDto;
@@ -34,6 +35,24 @@ public class ReportController {
     private static final Long TEST_USER_ID = 1L;
 
     private final ReportService reportService;
+
+    @GetMapping
+    public ResponseEntity<BaseResponse<PageResponseDto<ReportListResponse>>> getReports(
+        @RequestParam(required = false) ReportStatus status,
+        @RequestParam(required = false) Long categoryId,
+        @RequestParam(required = false) String sido,
+        @RequestParam(required = false) String sigungu,
+        @RequestParam(required = false) String eupmyeondong,
+        @RequestParam(required = false) String from,
+        @RequestParam(required = false) String to,
+        @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC)
+        Pageable pageable) {
+        PageResponseDto<ReportListResponse> response = PageResponseDto.from(
+            reportService.getReports(status, categoryId, sido, sigungu, eupmyeondong, from, to, pageable)
+        );
+
+        return ResponseEntity.ok(BaseResponse.success("전체 제보 목록 조회 성공", response));
+    }
 
     @GetMapping("/me")
     public ResponseEntity<BaseResponse<PageResponseDto<MyReportResponse>>> getMyReports(
