@@ -1,11 +1,13 @@
 package com.ssaika.ssiren.domain.report.controller;
 
 import com.ssaika.ssiren.domain.report.dto.request.MyReportUpdateRequest;
+import com.ssaika.ssiren.domain.report.dto.request.ReportReactionRequest;
 import com.ssaika.ssiren.domain.report.dto.response.MyReportDeleteResponse;
 import com.ssaika.ssiren.domain.report.dto.response.MyReportDetailResponse;
 import com.ssaika.ssiren.domain.report.dto.response.MyReportResponse;
 import com.ssaika.ssiren.domain.report.dto.response.MyReportUpdateResponse;
 import com.ssaika.ssiren.domain.report.dto.response.ReportListResponse;
+import com.ssaika.ssiren.domain.report.dto.response.ReportReactionResponse;
 import com.ssaika.ssiren.domain.report.service.ReportService;
 import com.ssaika.ssiren.global.dto.BaseResponse;
 import com.ssaika.ssiren.global.dto.PageResponseDto;
@@ -21,6 +23,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -89,5 +92,17 @@ public class ReportController {
         MyReportDeleteResponse response = reportService.deleteMyReport(TEST_USER_ID, reportId);
 
         return ResponseEntity.ok(BaseResponse.success("내 제보 삭제 성공", response));
+    }
+    @PostMapping("/{reportId}/reactions")
+    public ResponseEntity<BaseResponse<ReportReactionResponse>> saveReportReaction(
+        @PathVariable Long reportId,
+        @RequestBody @Valid ReportReactionRequest request) {
+        ReportReactionResponse response = reportService.saveReportReaction(
+            TEST_USER_ID,
+            reportId,
+            request
+        );
+
+        return ResponseEntity.ok(BaseResponse.success("제보 반응 반영 성공", response));
     }
 }

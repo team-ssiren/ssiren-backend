@@ -8,11 +8,13 @@ import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssaika.ssiren.domain.report.entity.Report;
+import com.ssaika.ssiren.domain.report.repository.IssueGroupRepository;
 import com.ssaika.ssiren.domain.report.repository.ReportCategoryRepository;
 import com.ssaika.ssiren.domain.report.repository.ReportImageRepository;
 import com.ssaika.ssiren.domain.report.repository.ReportReactionLogRepository;
 import com.ssaika.ssiren.domain.report.repository.ReportRepository;
 import com.ssaika.ssiren.domain.report.repository.ReportStatusHistoryRepository;
+import com.ssaika.ssiren.domain.user.repository.UserRepository;
 import com.ssaika.ssiren.global.exception.CustomException;
 import java.util.List;
 import java.util.Optional;
@@ -34,6 +36,9 @@ class ReportServiceTest {
     private ReportRepository reportRepository;
 
     @Mock
+    private IssueGroupRepository issueGroupRepository;
+
+    @Mock
     private ReportCategoryRepository reportCategoryRepository;
 
     @Mock
@@ -45,16 +50,21 @@ class ReportServiceTest {
     @Mock
     private ReportReactionLogRepository reportReactionLogRepository;
 
+    @Mock
+    private UserRepository userRepository;
+
     private ReportService reportService;
 
     @BeforeEach
     void setUp() {
         reportService = new ReportService(
             reportRepository,
+            issueGroupRepository,
             reportCategoryRepository,
             reportImageRepository,
             reportStatusHistoryRepository,
             reportReactionLogRepository,
+            userRepository,
             new ObjectMapper()
         );
     }

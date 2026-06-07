@@ -6,8 +6,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.ssaika.ssiren.domain.report.dto.response.MyReportDetailResponse;
 import com.ssaika.ssiren.domain.report.dto.response.MyReportResponse;
 import com.ssaika.ssiren.domain.report.dto.request.MyReportUpdateRequest;
+import com.ssaika.ssiren.domain.report.dto.request.ReportReactionRequest;
 import com.ssaika.ssiren.domain.report.dto.response.MyReportDeleteResponse;
 import com.ssaika.ssiren.domain.report.dto.response.MyReportUpdateResponse;
+import com.ssaika.ssiren.domain.report.dto.response.ReportReactionResponse;
 import com.ssaika.ssiren.domain.report.entity.IssueGroup;
 import com.ssaika.ssiren.domain.report.entity.Report;
 import com.ssaika.ssiren.domain.report.entity.ReportCategory;
@@ -15,13 +17,17 @@ import com.ssaika.ssiren.domain.report.entity.ReportImage;
 import com.ssaika.ssiren.domain.report.entity.ReportReactionLog;
 import com.ssaika.ssiren.domain.report.entity.ReportStatusHistory;
 import com.ssaika.ssiren.domain.report.repository.ReportCategoryRepository;
+import com.ssaika.ssiren.domain.report.repository.IssueGroupRepository;
 import com.ssaika.ssiren.domain.report.repository.ReportImageRepository;
 import com.ssaika.ssiren.domain.report.repository.ReportReactionLogRepository;
 import com.ssaika.ssiren.domain.report.repository.ReportRepository;
 import com.ssaika.ssiren.domain.report.repository.ReportSpecification;
 import com.ssaika.ssiren.domain.report.repository.ReportStatusHistoryRepository;
+import com.ssaika.ssiren.domain.user.entity.User;
+import com.ssaika.ssiren.domain.user.repository.UserRepository;
 import com.ssaika.ssiren.global.enums.ReportStatus;
 import com.ssaika.ssiren.global.enums.ReportVisibility;
+import com.ssaika.ssiren.global.enums.ReportReactionType;
 import com.ssaika.ssiren.domain.report.dto.response.ReportListResponse;
 import com.ssaika.ssiren.global.exception.CustomException;
 import com.ssaika.ssiren.global.exception.ErrorCode;
@@ -47,10 +53,12 @@ import org.springframework.transaction.annotation.Transactional;
 public class ReportService {
 
     private final ReportRepository reportRepository;
+    private final IssueGroupRepository issueGroupRepository;
     private final ReportCategoryRepository reportCategoryRepository;
     private final ReportImageRepository reportImageRepository;
     private final ReportStatusHistoryRepository reportStatusHistoryRepository;
     private final ReportReactionLogRepository reportReactionLogRepository;
+    private final UserRepository userRepository;
     private final ObjectMapper objectMapper;
 
     public Page<ReportListResponse> getReports(
@@ -200,6 +208,50 @@ public class ReportService {
         reportRepository.flush();
 
         return response;
+    }
+
+    @Transactional
+    public ReportReactionResponse saveReportReaction(
+        Long userId,
+        Long reportId,
+        ReportReactionRequest request) {
+        log.info(
+            "Save report reaction. userId={}, reportId={}, reactionType={}",
+            userId,
+            reportId,
+            request.reactionType()
+        );
+
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND.getMessage(),
+                ErrorCode.USER_NOT_FOUND));
+        Report report = reportRepository.findById(reportId)
+            .orElseThrow(() -> new CustomException("?쒕낫瑜?李얠쓣 ???놁뒿?덈떎.", ErrorCode.NOT_FOUND));
+
+        IssueGroup issueGroup = report.getIssueGroup();
+
+        ReportReactionLog reactionLog = reportReactionLogRepository
+            .findByReport_IdAndUser_Id(reportId, userId)
+            .map(existingReactionLog -> {
+                ReportReactionType previousReactionType =
+                    existingReactionLog.updateReactionType(request.reactionType());
+                issueGroup.applyReaction(previousReactionType, request.reactionType());
+                return existingReactionLog;
+            })
+            .orElseGet(() -> {
+                ReportReactionLog newReactionLog = ReportReactionLog.create(
+                    report,
+                    user,
+                    request.reactionType()
+                );
+                issueGroup.applyReaction(null, request.reactionType());
+                return reportReactionLogRepository.save(newReactionLog);
+            });
+
+        issueGroupRepository.saveAndFlush(issueGroup);
+        reportReactionLogRepository.flush();
+
+        return ReportReactionResponse.from(reactionLog, report, objectMapper);
     }
 
     private LocalDateTime parseFromDateTime(String value) {
