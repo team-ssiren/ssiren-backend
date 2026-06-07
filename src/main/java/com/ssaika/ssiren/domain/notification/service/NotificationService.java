@@ -38,4 +38,13 @@ public class NotificationService {
 
         return FcmTokenResponse.from(userFcmToken);
     }
+
+    @Transactional
+    public void deactivateFcmToken(Long userId, FcmTokenRequest request) {
+        UserFcmToken userFcmToken = userFcmTokenRepository
+            .findByFcmTokenAndUserId(request.getFcmToken(), userId)
+            .orElseThrow(() -> new CustomException("토큰을 찾을 수 없습니다.", ErrorCode.NOT_FOUND));
+
+        userFcmToken.deactivate();
+    }
 }

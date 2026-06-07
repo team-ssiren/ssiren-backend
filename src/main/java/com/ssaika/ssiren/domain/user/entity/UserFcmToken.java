@@ -53,4 +53,8 @@ public class UserFcmToken extends BaseTime {
         this.user = user;
         this.isActive = true;
     }
+
+    public void deactivate() {
+        this.isActive = false;
+    }
 }
