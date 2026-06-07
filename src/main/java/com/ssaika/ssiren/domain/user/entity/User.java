@@ -56,6 +56,19 @@ public class User extends BaseTime {
             .build();
     }
 
+    public void updateProfile(String nickname, Boolean isAlarmEnabled) {
+        if (nickname != null) {
+            this.nickname = normalizeNickname(email, nickname);
+        }
+        if (isAlarmEnabled != null) {
+            this.isAlarmEnabled = isAlarmEnabled;
+        }
+    }
+
+    public void deactivate() {
+        this.isActive = false;
+    }
+
     private static String normalizeNickname(String email, String nickname) {
         String value = nickname == null || nickname.isBlank() ? email : nickname;
         return value.length() > MAX_NICKNAME_LENGTH ? value.substring(0, MAX_NICKNAME_LENGTH) : value;
