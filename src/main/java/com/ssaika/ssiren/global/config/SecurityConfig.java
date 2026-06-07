@@ -41,6 +41,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/auth/logout").authenticated()
                 .requestMatchers("/api/v1/users/me/**").authenticated()
                 .requestMatchers("/api/v1/users/me").authenticated()
+                .requestMatchers("/api/v1/notifications/tokens").authenticated()
                 .anyRequest().permitAll())
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
