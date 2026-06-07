@@ -24,6 +24,8 @@ import lombok.NoArgsConstructor;
 @Table(name = "users")
 public class User extends BaseTime {
 
+    private static final int MAX_NICKNAME_LENGTH = 50;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -43,4 +45,19 @@ public class User extends BaseTime {
 
     @Column(name = "is_alarm_enabled", nullable = false)
     private Boolean isAlarmEnabled;
+
+    public static User createKakaoUser(String email, String nickname) {
+        return User.builder()
+            .email(email)
+            .nickname(normalizeNickname(email, nickname))
+            .role(UserRole.CITIZEN)
+            .isActive(true)
+            .isAlarmEnabled(false)
+            .build();
+    }
+
+    private static String normalizeNickname(String email, String nickname) {
+        String value = nickname == null || nickname.isBlank() ? email : nickname;
+        return value.length() > MAX_NICKNAME_LENGTH ? value.substring(0, MAX_NICKNAME_LENGTH) : value;
+    }
 }
