@@ -44,4 +44,29 @@ public class UserConsent extends BaseTime {
     @JoinColumn(name = "user_id", nullable = false)
     @OnDelete(action = OnDeleteAction.CASCADE)
     private User user;
+
+    public static UserConsent create(User user, Boolean locationAgreed, Boolean sensitiveInfoAgreed) {
+        return UserConsent.builder()
+            .user(user)
+            .locationAgreed(locationAgreed)
+            .sensitiveInfoAgreed(sensitiveInfoAgreed)
+            .sensitiveInfoAgreedAt(Boolean.TRUE.equals(sensitiveInfoAgreed) ? LocalDateTime.now() : null)
+            .build();
+    }
+
+    public void update(Boolean locationAgreed, Boolean sensitiveInfoAgreed) {
+        this.locationAgreed = locationAgreed;
+        this.sensitiveInfoAgreedAt = resolveSensitiveInfoAgreedAt(sensitiveInfoAgreed);
+        this.sensitiveInfoAgreed = sensitiveInfoAgreed;
+    }
+
+    private LocalDateTime resolveSensitiveInfoAgreedAt(Boolean nextSensitiveInfoAgreed) {
+        if (Boolean.TRUE.equals(nextSensitiveInfoAgreed)) {
+            if (Boolean.TRUE.equals(this.sensitiveInfoAgreed)) {
+                return this.sensitiveInfoAgreedAt;
+            }
+            return LocalDateTime.now();
+        }
+        return null;
+    }
 }
