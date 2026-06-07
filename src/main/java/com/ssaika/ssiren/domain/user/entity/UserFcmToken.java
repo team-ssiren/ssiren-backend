@@ -40,4 +40,17 @@ public class UserFcmToken extends BaseTime {
     @JoinColumn(name = "user_id", nullable = false)
     @OnDelete(action = OnDeleteAction.CASCADE)
     private User user;
+
+    public static UserFcmToken create(User user, String fcmToken) {
+        return UserFcmToken.builder()
+            .user(user)
+            .fcmToken(fcmToken)
+            .isActive(true)
+            .build();
+    }
+
+    public void activate(User user) {
+        this.user = user;
+        this.isActive = true;
+    }
 }
