@@ -39,6 +39,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/auth/login").permitAll()
                 .requestMatchers("/api/v1/auth/token/refresh").permitAll()
                 .requestMatchers("/api/v1/auth/logout").authenticated()
+                // TODO: 로그인 연동 후 authenticated()로 복구
+                // .requestMatchers("/api/v1/reports/me").authenticated()
                 .requestMatchers("/api/v1/users/me/**").authenticated()
                 .requestMatchers("/api/v1/users/me").authenticated()
                 .requestMatchers("/api/v1/notifications/tokens").authenticated()

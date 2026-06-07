@@ -101,4 +101,24 @@ public class Report extends BaseTime {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "department_id", nullable = false)
     private Department department;
+
+    public void update(
+        String title,
+        String contents,
+        ReportVisibility visibility,
+        ReportCategory category) {
+        if (title != null) {
+            this.title = title;
+        }
+        if (contents != null) {
+            this.contents = contents;
+        }
+        if (visibility != null) {
+            this.visibility = visibility;
+        }
+        if (category != null) {
+            this.category = category;
+            this.department = category.getDepartment();
+        }
+    }
 }

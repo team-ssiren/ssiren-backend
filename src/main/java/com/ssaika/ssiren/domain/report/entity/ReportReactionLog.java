@@ -47,4 +47,22 @@ public class ReportReactionLog extends BaseTime {
     @JoinColumn(name = "user_id", nullable = false)
     @OnDelete(action = OnDeleteAction.CASCADE)
     private User user;
+
+    public static ReportReactionLog create(
+        Report report,
+        User user,
+        ReportReactionType reactionType) {
+        return ReportReactionLog.builder()
+            .report(report)
+            .user(user)
+            .reactionType(reactionType)
+            .build();
+    }
+
+    public ReportReactionType updateReactionType(ReportReactionType reactionType) {
+        ReportReactionType previousReactionType = this.reactionType;
+        this.reactionType = reactionType;
+
+        return previousReactionType;
+    }
 }

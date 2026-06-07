@@ -2,6 +2,7 @@ package com.ssaika.ssiren.domain.report.entity;
 
 import com.ssaika.ssiren.global.entity.BaseTime;
 import com.ssaika.ssiren.global.enums.IssueGroupStatus;
+import com.ssaika.ssiren.global.enums.ReportReactionType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -63,4 +64,49 @@ public class IssueGroup extends BaseTime {
 
     @Column(name = "risk_score", nullable = false, precision = 5, scale = 2)
     private BigDecimal riskScore;
+
+    public void decreaseReportCount() {
+        if (reportCount > 0) {
+            reportCount--;
+        }
+    }
+
+    public void applyReaction(
+        ReportReactionType previousReactionType,
+        ReportReactionType newReactionType) {
+        if (previousReactionType == newReactionType) {
+            return;
+        }
+
+        decreaseReactionCount(previousReactionType);
+        increaseReactionCount(newReactionType);
+    }
+
+    private void increaseReactionCount(ReportReactionType reactionType) {
+        if (reactionType == ReportReactionType.YES) {
+            yesCount++;
+            return;
+        }
+        if (reactionType == ReportReactionType.NO) {
+            noCount++;
+            return;
+        }
+        if (reactionType == ReportReactionType.UNKNOWN) {
+            unknownCount++;
+        }
+    }
+
+    private void decreaseReactionCount(ReportReactionType reactionType) {
+        if (reactionType == ReportReactionType.YES && yesCount > 0) {
+            yesCount--;
+            return;
+        }
+        if (reactionType == ReportReactionType.NO && noCount > 0) {
+            noCount--;
+            return;
+        }
+        if (reactionType == ReportReactionType.UNKNOWN && unknownCount > 0) {
+            unknownCount--;
+        }
+    }
 }
