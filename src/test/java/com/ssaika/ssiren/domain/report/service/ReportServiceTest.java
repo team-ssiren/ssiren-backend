@@ -9,9 +9,12 @@ import static org.mockito.Mockito.when;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssaika.ssiren.domain.report.entity.Report;
 import com.ssaika.ssiren.domain.report.repository.ReportImageRepository;
+import com.ssaika.ssiren.domain.report.repository.ReportReactionLogRepository;
 import com.ssaika.ssiren.domain.report.repository.ReportRepository;
+import com.ssaika.ssiren.domain.report.repository.ReportStatusHistoryRepository;
 import com.ssaika.ssiren.global.exception.CustomException;
 import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -32,6 +35,12 @@ class ReportServiceTest {
     @Mock
     private ReportImageRepository reportImageRepository;
 
+    @Mock
+    private ReportStatusHistoryRepository reportStatusHistoryRepository;
+
+    @Mock
+    private ReportReactionLogRepository reportReactionLogRepository;
+
     private ReportService reportService;
 
     @BeforeEach
@@ -39,6 +48,8 @@ class ReportServiceTest {
         reportService = new ReportService(
             reportRepository,
             reportImageRepository,
+            reportStatusHistoryRepository,
+            reportReactionLogRepository,
             new ObjectMapper()
         );
     }
@@ -77,6 +88,20 @@ class ReportServiceTest {
             .hasMessage("날짜 형식이 올바르지 않습니다.");
 
         verify(reportRepository, never()).findAll(anyReportSpecification(), any(Pageable.class));
+    }
+
+    @Test
+    void getMyReportThrowsExceptionWhenReportDoesNotExist() {
+        when(reportRepository.findByIdAndUser_Id(1L, 1L))
+            .thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> reportService.getMyReport(1L, 1L))
+            .isInstanceOf(CustomException.class)
+            .hasMessage("제보를 찾을 수 없습니다.");
+
+        verify(reportImageRepository, never()).findByReport_IdOrderBySortOrderAsc(any());
+        verify(reportStatusHistoryRepository, never()).findByReport_IdOrderByCreatedAtAsc(any());
+        verify(reportReactionLogRepository, never()).findByReport_IdOrderByCreatedAtAsc(any());
     }
 
     private Specification<Report> anyReportSpecification() {

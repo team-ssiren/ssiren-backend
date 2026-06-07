@@ -1,12 +1,17 @@
 package com.ssaika.ssiren.domain.report.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ssaika.ssiren.domain.report.dto.response.MyReportDetailResponse;
 import com.ssaika.ssiren.domain.report.dto.response.MyReportResponse;
 import com.ssaika.ssiren.domain.report.entity.Report;
 import com.ssaika.ssiren.domain.report.entity.ReportImage;
+import com.ssaika.ssiren.domain.report.entity.ReportReactionLog;
+import com.ssaika.ssiren.domain.report.entity.ReportStatusHistory;
 import com.ssaika.ssiren.domain.report.repository.ReportImageRepository;
+import com.ssaika.ssiren.domain.report.repository.ReportReactionLogRepository;
 import com.ssaika.ssiren.domain.report.repository.ReportRepository;
 import com.ssaika.ssiren.domain.report.repository.ReportSpecification;
+import com.ssaika.ssiren.domain.report.repository.ReportStatusHistoryRepository;
 import com.ssaika.ssiren.global.enums.ReportStatus;
 import com.ssaika.ssiren.global.exception.CustomException;
 import com.ssaika.ssiren.global.exception.ErrorCode;
@@ -33,6 +38,8 @@ public class ReportService {
 
     private final ReportRepository reportRepository;
     private final ReportImageRepository reportImageRepository;
+    private final ReportStatusHistoryRepository reportStatusHistoryRepository;
+    private final ReportReactionLogRepository reportReactionLogRepository;
     private final ObjectMapper objectMapper;
 
     public Page<MyReportResponse> getMyReports(
@@ -70,6 +77,26 @@ public class ReportService {
             reportImages.getOrDefault(report.getId(), List.of()),
             objectMapper
         ));
+    }
+
+    public MyReportDetailResponse getMyReport(Long userId, Long reportId) {
+        log.info("Get my report detail. userId={}, reportId={}", userId, reportId);
+
+        Report report = reportRepository.findByIdAndUser_Id(reportId, userId)
+            .orElseThrow(() -> new CustomException("제보를 찾을 수 없습니다.", ErrorCode.NOT_FOUND));
+        List<ReportImage> reportImages = reportImageRepository.findByReport_IdOrderBySortOrderAsc(reportId);
+        List<ReportStatusHistory> statusHistories =
+            reportStatusHistoryRepository.findByReport_IdOrderByCreatedAtAsc(reportId);
+        List<ReportReactionLog> reactionLogs =
+            reportReactionLogRepository.findByReport_IdOrderByCreatedAtAsc(reportId);
+
+        return MyReportDetailResponse.from(
+            report,
+            reportImages,
+            statusHistories,
+            reactionLogs,
+            objectMapper
+        );
     }
 
     private LocalDateTime parseFromDateTime(String value) {

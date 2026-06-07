@@ -1,6 +1,7 @@
 package com.ssaika.ssiren.domain.report.repository;
 
 import com.ssaika.ssiren.domain.report.entity.Report;
+import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -20,4 +21,14 @@ public interface ReportRepository extends JpaRepository<Report, Long>, JpaSpecif
         "department.agencyType"
     })
     Page<Report> findAll(Specification<Report> specification, Pageable pageable);
+
+    @EntityGraph(attributePaths = {
+        "user",
+        "category",
+        "category.parentCategory",
+        "issueGroup",
+        "department",
+        "department.agencyType"
+    })
+    Optional<Report> findByIdAndUser_Id(Long id, Long userId);
 }

@@ -8,4 +8,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface ReportImageRepository extends JpaRepository<ReportImage, Long> {
 
     List<ReportImage> findByReport_IdInOrderByReport_IdAscSortOrderAsc(Collection<Long> reportIds);
+
+    List<ReportImage> findByReport_IdOrderBySortOrderAsc(Long reportId);
 }
