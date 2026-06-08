@@ -7,6 +7,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ssaika.ssiren.domain.report.entity.IssueGroup;
 import com.ssaika.ssiren.domain.report.entity.Report;
 import com.ssaika.ssiren.domain.report.repository.IssueGroupRepository;
 import com.ssaika.ssiren.domain.report.repository.ReportCategoryRepository;
@@ -16,6 +17,7 @@ import com.ssaika.ssiren.domain.report.repository.ReportRepository;
 import com.ssaika.ssiren.domain.report.repository.ReportStatusHistoryRepository;
 import com.ssaika.ssiren.domain.user.repository.UserRepository;
 import com.ssaika.ssiren.global.exception.CustomException;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,6 +29,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 
 @ExtendWith(MockitoExtension.class)
@@ -103,6 +106,104 @@ class ReportServiceTest {
             .hasMessage("날짜 형식이 올바르지 않습니다.");
 
         verify(reportRepository, never()).findAll(anyReportSpecification(), any(Pageable.class));
+    }
+
+    @Test
+    void getIssuesAcceptsDateOnlyFilter() {
+        when(reportRepository.findAll(anyReportSpecification(), any(Sort.class)))
+            .thenReturn(List.of());
+
+        reportService.getIssues(
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            "2026-06-01",
+            "2026-06-30"
+        );
+
+        verify(reportRepository).findAll(anyReportSpecification(), any(Sort.class));
+    }
+
+    @Test
+    void getIssuesThrowsExceptionWhenRadiusParametersAreIncomplete() {
+        assertThatThrownBy(() ->
+            reportService.getIssues(
+                new BigDecimal("36.3665"),
+                null,
+                1000,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
+            ))
+            .isInstanceOf(CustomException.class);
+
+        verify(reportRepository, never()).findAll(anyReportSpecification(), any(Sort.class));
+    }
+
+    @Test
+    void getIssuesThrowsExceptionWhenRiskMinIsGreaterThanRiskMax() {
+        assertThatThrownBy(() ->
+            reportService.getIssues(
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                new BigDecimal("80.0"),
+                new BigDecimal("20.0"),
+                null,
+                null
+            ))
+            .isInstanceOf(CustomException.class);
+
+        verify(reportRepository, never()).findAll(anyReportSpecification(), any(Sort.class));
+    }
+
+    @Test
+    void getIssueThrowsExceptionWhenIssueGroupDoesNotExist() {
+        when(issueGroupRepository.findById(1L))
+            .thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> reportService.getIssue(1L))
+            .isInstanceOf(CustomException.class);
+
+        verify(reportRepository, never()).findAll(anyReportSpecification(), any(Sort.class));
+    }
+
+    @Test
+    void getIssueReturnsReportsInIssueGroup() {
+        IssueGroup issueGroup = org.mockito.Mockito.mock(IssueGroup.class);
+        when(issueGroupRepository.findById(1L))
+            .thenReturn(Optional.of(issueGroup));
+        when(reportRepository.findAll(anyReportSpecification(), any(Sort.class)))
+            .thenReturn(List.of());
+
+        reportService.getIssue(1L);
+
+        verify(issueGroupRepository).findById(1L);
+        verify(reportRepository).findAll(anyReportSpecification(), any(Sort.class));
     }
 
     @Test
