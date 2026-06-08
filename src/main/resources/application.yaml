@@ -1,11 +1,32 @@
-POSTGRES_DB=ssiren
-POSTGRES_USER=ssiren
-POSTGRES_PASSWORD=ssiren
+spring:
+  config:
+    import:
+      - optional:file:.env[.properties]
+      - optional:file:ssiren-backend/.env[.properties]
+  application:
+    name: ssiren
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:15432/ssiren}
+    username: ${SPRING_DATASOURCE_USERNAME:ssiren}
+    password: ${SPRING_DATASOURCE_PASSWORD:ssiren}
+    driver-class-name: org.postgresql.Driver
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+  jpa:
+    hibernate:
+      ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:validate}
+    properties:
+      hibernate:
+        format_sql: true
+        highlight_sql: true
+        use_sql_comments: true
 
-SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/ssiren
-SPRING_DATASOURCE_USERNAME=ssiren
-SPRING_DATASOURCE_PASSWORD=ssiren
-SPRING_JPA_HIBERNATE_DDL_AUTO=create
+logging:
+  level:
+    org.hibernate.SQL: debug
+    org.hibernate.orm.jdbc.bind: trace
 
 jwt:
   secret: ${JWT_SECRET}
