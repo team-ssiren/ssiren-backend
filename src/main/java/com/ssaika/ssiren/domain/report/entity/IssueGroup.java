@@ -65,6 +65,28 @@ public class IssueGroup extends BaseTime {
     @Column(name = "risk_score", nullable = false, precision = 5, scale = 2)
     private BigDecimal riskScore;
 
+    public static IssueGroup create(
+        String title,
+        String content,
+        BigDecimal groupLatitude,
+        BigDecimal groupLongitude,
+        LocalDateTime recentReportedAt,
+        BigDecimal riskScore) {
+        return IssueGroup.builder()
+            .title(title)
+            .content(content)
+            .groupLatitude(groupLatitude)
+            .groupLongitude(groupLongitude)
+            .reportCount(1)
+            .yesCount(0)
+            .noCount(0)
+            .unknownCount(0)
+            .recentReportedAt(recentReportedAt)
+            .status(IssueGroupStatus.ACTIVE)
+            .riskScore(riskScore)
+            .build();
+    }
+
     public void decreaseReportCount() {
         if (reportCount > 0) {
             reportCount--;

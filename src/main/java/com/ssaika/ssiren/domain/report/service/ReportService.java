@@ -4,12 +4,15 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.ssaika.ssiren.domain.agency.entity.Department;
+import com.ssaika.ssiren.domain.agency.repository.DepartmentRepository;
 import com.ssaika.ssiren.domain.report.address.AddressResolver;
 import com.ssaika.ssiren.domain.report.address.AddressSnapshot;
 import com.ssaika.ssiren.domain.report.client.ReportAiClient;
 import com.ssaika.ssiren.domain.report.client.dto.request.ReportAiAnalyzeRequest;
 import com.ssaika.ssiren.domain.report.client.dto.response.ReportAiAnalyzeResponse;
 import com.ssaika.ssiren.domain.report.dto.request.MyReportUpdateRequest;
+import com.ssaika.ssiren.domain.report.dto.request.ReportCreateRequest;
 import com.ssaika.ssiren.domain.report.dto.request.ReportDraftRequest;
 import com.ssaika.ssiren.domain.report.dto.request.ReportReactionRequest;
 import com.ssaika.ssiren.domain.report.dto.response.IssueDetailResponse;
@@ -21,6 +24,7 @@ import com.ssaika.ssiren.domain.report.dto.response.MyReportUpdateResponse;
 import com.ssaika.ssiren.domain.report.dto.response.ReportAgencyTypeResponse;
 import com.ssaika.ssiren.domain.report.dto.response.ReportAiAnalysisResponse;
 import com.ssaika.ssiren.domain.report.dto.response.ReportCategoryResponse;
+import com.ssaika.ssiren.domain.report.dto.response.ReportCreateResponse;
 import com.ssaika.ssiren.domain.report.dto.response.ReportDepartmentResponse;
 import com.ssaika.ssiren.domain.report.dto.response.ReportDraftCreateResponse;
 import com.ssaika.ssiren.domain.report.dto.response.ReportDraftResponse;
@@ -47,6 +51,8 @@ import com.ssaika.ssiren.global.enums.ReportVisibility;
 import com.ssaika.ssiren.global.enums.ReportReactionType;
 import com.ssaika.ssiren.global.exception.CustomException;
 import com.ssaika.ssiren.global.exception.ErrorCode;
+import com.ssaika.ssiren.global.util.ReportImageStorage;
+import com.ssaika.ssiren.global.util.ReportImageStorage.UploadedReportImage;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -63,6 +69,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 @Slf4j
 @Service
@@ -85,9 +92,11 @@ public class ReportService {
     private final ReportStatusHistoryRepository reportStatusHistoryRepository;
     private final ReportReactionLogRepository reportReactionLogRepository;
     private final UserRepository userRepository;
+    private final DepartmentRepository departmentRepository;
     private final ObjectMapper objectMapper;
     private final ReportAiClient reportAiClient;
     private final AddressResolver addressResolver;
+    private final ReportImageStorage reportImageStorage;
 
     public ReportDraftCreateResponse createReportDraft(Long userId, ReportDraftRequest request) {
         validateAuthenticatedUser(userId);
@@ -134,6 +143,63 @@ public class ReportService {
             ReportAgencyTypeResponse.from(category.getDepartment().getAgencyType()),
             ReportAiAnalysisResponse.from(aiResponse.analysis())
         );
+    }
+
+    @Transactional
+    public ReportCreateResponse createReport(
+        Long userId,
+        ReportCreateRequest request,
+        List<MultipartFile> images) {
+        validateAuthenticatedUser(userId);
+        validateReportCreateRequest(request, images);
+        log.info(
+            "Create report. userId={}, categoryId={}, departmentId={}, latitude={}, longitude={}, imageCount={}",
+            userId,
+            request.categoryId(),
+            request.departmentId(),
+            request.latitude(),
+            request.longitude(),
+            images == null ? 0 : images.size()
+        );
+
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND.getMessage(), ErrorCode.USER_NOT_FOUND));
+        ReportCategory category = getReportCategory(request.categoryId());
+        Department department = getDepartment(request.departmentId());
+        validateCategoryDepartment(category, department);
+
+        // TODO: 기존 이슈 그룹 병합 판단 로직이 추가되면 request.issueGroupId() 또는 후보 그룹을 여기서 반영한다.
+        IssueGroup issueGroup = issueGroupRepository.save(IssueGroup.create(
+            request.title(),
+            resolveIssueGroupContent(request.contents()),
+            request.latitude(),
+            request.longitude(),
+            LocalDateTime.now(),
+            request.riskScore()
+        ));
+
+        Report report = reportRepository.saveAndFlush(Report.create(
+            request.title(),
+            convertContents(request.contents()),
+            request.latitude(),
+            request.longitude(),
+            request.roadAddress(),
+            request.jibunAddress(),
+            request.sido(),
+            request.sigungu(),
+            request.eupmyeondong(),
+            request.occurredAt(),
+            request.riskScore(),
+            request.visibility(),
+            user,
+            category,
+            issueGroup,
+            department
+        ));
+
+        List<ReportImage> reportImages = uploadAndSaveReportImages(userId, report, images);
+
+        return ReportCreateResponse.from(report, reportImages, issueGroup, objectMapper);
     }
 
     public List<IssueResponse> getIssues(
@@ -360,6 +426,7 @@ public class ReportService {
             objectMapper
         );
 
+        // TODO: R2 오브젝트 삭제 정책이 정해지면 report_images와 함께 실제 이미지도 정리한다.
         reportRepository.delete(report);
         reportRepository.flush();
 
@@ -514,6 +581,17 @@ public class ReportService {
             .orElseThrow(() -> new CustomException("카테고리를 찾을 수 없습니다.", ErrorCode.NOT_FOUND));
     }
 
+    private Department getDepartment(Long departmentId) {
+        return departmentRepository.findById(departmentId)
+            .orElseThrow(() -> new CustomException("담당 부서를 찾을 수 없습니다.", ErrorCode.NOT_FOUND));
+    }
+
+    private void validateCategoryDepartment(ReportCategory category, Department department) {
+        if (!category.getDepartment().getId().equals(department.getId())) {
+            throw new CustomException("카테고리와 담당 부서가 일치하지 않습니다.", ErrorCode.INVALID_PARAMETER);
+        }
+    }
+
     private String convertContents(JsonNode contents) {
         if (contents == null) {
             return null;
@@ -526,6 +604,43 @@ public class ReportService {
             return objectMapper.writeValueAsString(contents);
         } catch (JsonProcessingException e) {
             throw new CustomException("제보 본문 형식이 올바르지 않습니다.", ErrorCode.INVALID_FORMAT);
+        }
+    }
+
+    private String resolveIssueGroupContent(JsonNode contents) {
+        JsonNode summary = contents == null ? null : contents.get("summary");
+        if (summary != null && summary.isTextual() && !summary.asText().isBlank()) {
+            return summary.asText();
+        }
+        return contents == null ? null : contents.toString();
+    }
+
+    private List<ReportImage> uploadAndSaveReportImages(
+        Long userId,
+        Report report,
+        List<MultipartFile> images) {
+        if (images == null || images.isEmpty()) {
+            return List.of();
+        }
+
+        List<String> uploadedObjectKeys = new java.util.ArrayList<>();
+        try {
+            List<ReportImage> reportImages = new java.util.ArrayList<>();
+            int sortOrder = 1;
+            for (MultipartFile image : images) {
+                if (image == null || image.isEmpty()) {
+                    continue;
+                }
+                UploadedReportImage uploadedImage = reportImageStorage.upload(userId, report.getId(), image);
+                uploadedObjectKeys.add(uploadedImage.objectKey());
+                reportImages.add(ReportImage.create(uploadedImage.imageUrl(), sortOrder++, report));
+            }
+
+            // TODO: DB 커밋 단계에서 실패하면 업로드된 R2 오브젝트가 남을 수 있어 추후 정리 작업이 필요하다.
+            return reportImageRepository.saveAll(reportImages);
+        } catch (RuntimeException e) {
+            uploadedObjectKeys.forEach(reportImageStorage::deleteQuietly);
+            throw e;
         }
     }
 
@@ -552,14 +667,72 @@ public class ReportService {
     private void validateReportDraftRequest(ReportDraftRequest request) {
         validateCoordinate("위도", request.latitude(), MIN_LATITUDE, MAX_LATITUDE);
         validateCoordinate("경도", request.longitude(), MIN_LONGITUDE, MAX_LONGITUDE);
+        validateReportImages(request.images(), false);
+    }
 
-        if (request.images() == null || request.images().isEmpty()) {
+    private void validateReportCreateRequest(ReportCreateRequest request, List<MultipartFile> images) {
+        validateNotBlank("제보 제목", request.title());
+        validateNotBlank("도로명 주소", request.roadAddress());
+        validateNotBlank("지번 주소", request.jibunAddress());
+        validateNotBlank("시/도", request.sido());
+        validateNotBlank("시/군/구", request.sigungu());
+        validateNotBlank("읍/면/동", request.eupmyeondong());
+        if (request.contents() == null) {
+            throw new CustomException("제보 본문은 필수입니다.", ErrorCode.INVALID_PARAMETER);
+        }
+        if (request.occurredAt() == null) {
+            throw new CustomException("발생 시각은 필수입니다.", ErrorCode.INVALID_PARAMETER);
+        }
+        if (request.riskScore() == null) {
+            throw new CustomException("위험 점수는 필수입니다.", ErrorCode.INVALID_PARAMETER);
+        }
+        if (request.visibility() == null) {
+            throw new CustomException("공개 범위는 필수입니다.", ErrorCode.INVALID_PARAMETER);
+        }
+        if (request.categoryId() == null) {
+            throw new CustomException("카테고리는 필수입니다.", ErrorCode.INVALID_PARAMETER);
+        }
+        if (request.departmentId() == null) {
+            throw new CustomException("담당 부서는 필수입니다.", ErrorCode.INVALID_PARAMETER);
+        }
+        validateCoordinate("위도", request.latitude(), MIN_LATITUDE, MAX_LATITUDE);
+        validateCoordinate("경도", request.longitude(), MIN_LONGITUDE, MAX_LONGITUDE);
+        validateRiskScore(request.riskScore());
+        if (!request.contents().isObject()) {
+            throw new CustomException("제보 본문은 JSON 객체여야 합니다.", ErrorCode.INVALID_FORMAT);
+        }
+        validateReportImages(images, false);
+    }
+
+    private void validateNotBlank(String name, String value) {
+        if (value == null || value.isBlank()) {
+            throw new CustomException(name + "은 필수입니다.", ErrorCode.INVALID_PARAMETER);
+        }
+    }
+
+    private void validateRiskScore(BigDecimal riskScore) {
+        if (riskScore.compareTo(BigDecimal.ZERO) < 0 || riskScore.compareTo(BigDecimal.valueOf(100)) > 0) {
+            throw new CustomException("위험 점수는 0부터 100 사이여야 합니다.", ErrorCode.INVALID_PARAMETER);
+        }
+    }
+
+    private void validateReportImages(List<MultipartFile> images, boolean required) {
+        if (images == null || images.isEmpty()) {
+            if (required) {
+                throw new CustomException("제보 이미지는 최소 1장 이상 첨부해야 합니다.", ErrorCode.MISSING_PARAMETER);
+            }
             return;
         }
-        if (request.images().size() > MAX_REPORT_DRAFT_IMAGE_COUNT) {
+        if (images.size() > MAX_REPORT_DRAFT_IMAGE_COUNT) {
             throw new CustomException("제보 이미지는 최대 5장까지 첨부할 수 있습니다.", ErrorCode.INVALID_PARAMETER);
         }
-        request.images().stream()
+        long validImageCount = images.stream()
+            .filter(image -> image != null && !image.isEmpty())
+            .count();
+        if (required && validImageCount == 0) {
+            throw new CustomException("제보 이미지는 최소 1장 이상 첨부해야 합니다.", ErrorCode.MISSING_PARAMETER);
+        }
+        images.stream()
             .filter(image -> image != null && !image.isEmpty())
             .forEach(image -> {
                 if (image.getSize() > MAX_REPORT_DRAFT_IMAGE_SIZE) {

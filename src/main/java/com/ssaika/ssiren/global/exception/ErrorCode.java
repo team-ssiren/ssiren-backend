@@ -59,7 +59,12 @@ public enum ErrorCode {
     // ============================================================
     AI_SERVER_CONNECTION_FAILED(HttpStatus.BAD_GATEWAY, "AI 서버에 연결할 수 없습니다."),
     AI_SERVER_TIMEOUT(HttpStatus.GATEWAY_TIMEOUT, "AI 서버 응답 시간이 초과되었습니다."),
-    AI_SERVER_RESPONSE_ERROR(HttpStatus.BAD_GATEWAY, "AI 서버 응답이 올바르지 않습니다.");
+    AI_SERVER_RESPONSE_ERROR(HttpStatus.BAD_GATEWAY, "AI 서버 응답이 올바르지 않습니다."),
+
+    // ============================================================
+    // * REPORT
+    // ============================================================
+    REPORT_IMAGE_UPLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "제보 이미지 업로드에 실패했습니다.");
 
 
 

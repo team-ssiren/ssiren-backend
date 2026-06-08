@@ -7,6 +7,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ssaika.ssiren.domain.agency.repository.DepartmentRepository;
+import com.ssaika.ssiren.domain.report.address.AddressResolver;
+import com.ssaika.ssiren.domain.report.client.ReportAiClient;
 import com.ssaika.ssiren.domain.report.entity.IssueGroup;
 import com.ssaika.ssiren.domain.report.entity.Report;
 import com.ssaika.ssiren.domain.report.repository.IssueGroupRepository;
@@ -17,6 +20,7 @@ import com.ssaika.ssiren.domain.report.repository.ReportRepository;
 import com.ssaika.ssiren.domain.report.repository.ReportStatusHistoryRepository;
 import com.ssaika.ssiren.domain.user.repository.UserRepository;
 import com.ssaika.ssiren.global.exception.CustomException;
+import com.ssaika.ssiren.global.util.ReportImageStorage;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
@@ -56,6 +60,18 @@ class ReportServiceTest {
     @Mock
     private UserRepository userRepository;
 
+    @Mock
+    private DepartmentRepository departmentRepository;
+
+    @Mock
+    private ReportAiClient reportAiClient;
+
+    @Mock
+    private AddressResolver addressResolver;
+
+    @Mock
+    private ReportImageStorage reportImageStorage;
+
     private ReportService reportService;
 
     @BeforeEach
@@ -68,7 +84,11 @@ class ReportServiceTest {
             reportStatusHistoryRepository,
             reportReactionLogRepository,
             userRepository,
-            new ObjectMapper()
+            departmentRepository,
+            new ObjectMapper(),
+            reportAiClient,
+            addressResolver,
+            reportImageStorage
         );
     }
 

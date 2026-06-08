@@ -53,3 +53,12 @@ kakao:
     base-url: ${KAKAO_LOCAL_BASE_URL:https://dapi.kakao.com}
     connect-timeout-ms: ${KAKAO_LOCAL_CONNECT_TIMEOUT_MS:3000}
     response-timeout-ms: ${KAKAO_LOCAL_RESPONSE_TIMEOUT_MS:5000}
+
+cloudflare:
+  r2:
+    endpoint: ${R2_ENDPOINT:${AWS_ENDPOINT_URL_S3:}}
+    access-key-id: ${R2_ACCESS_KEY_ID:${AWS_ACCESS_KEY_ID:}}
+    secret-access-key: ${R2_SECRET_ACCESS_KEY:${AWS_SECRET_ACCESS_KEY:}}
+    bucket: ${R2_BUCKET:${AWS_BUCKET_S3:}}
+    public-url: ${R2_PUBLIC_URL:}
+    region: ${R2_REGION:${AWS_DEFAULT_REGION:auto}}
