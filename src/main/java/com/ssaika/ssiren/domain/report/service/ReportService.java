@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.ssaika.ssiren.domain.report.address.AddressResolver;
+import com.ssaika.ssiren.domain.report.address.AddressSnapshot;
 import com.ssaika.ssiren.domain.report.client.ReportAiClient;
 import com.ssaika.ssiren.domain.report.client.dto.request.ReportAiAnalyzeRequest;
 import com.ssaika.ssiren.domain.report.client.dto.response.ReportAiAnalyzeResponse;
@@ -47,7 +49,6 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeParseException;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -65,6 +66,10 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class ReportService {
 
+    private static final BigDecimal MIN_LATITUDE = BigDecimal.valueOf(-90);
+    private static final BigDecimal MAX_LATITUDE = BigDecimal.valueOf(90);
+    private static final BigDecimal MIN_LONGITUDE = BigDecimal.valueOf(-180);
+    private static final BigDecimal MAX_LONGITUDE = BigDecimal.valueOf(180);
     private static final int MAX_REPORT_DRAFT_IMAGE_COUNT = 5;
     private static final long MAX_REPORT_DRAFT_IMAGE_SIZE = 50 * 1024 * 1024;
     private static final String ADDRESS_NOT_RESOLVED = "주소 확인 필요";
@@ -78,6 +83,7 @@ public class ReportService {
     private final UserRepository userRepository;
     private final ObjectMapper objectMapper;
     private final ReportAiClient reportAiClient;
+    private final AddressResolver addressResolver;
 
     public ReportDraftCreateResponse createReportDraft(Long userId, ReportDraftRequest request) {
         validateAuthenticatedUser(userId);
@@ -94,16 +100,16 @@ public class ReportService {
             .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND.getMessage(), ErrorCode.USER_NOT_FOUND));
 
         LocalDateTime occurredAt = request.occurredAt() == null ? LocalDateTime.now() : request.occurredAt();
-        AddressSnapshot address = resolveAddressSnapshot(request.latitude(), request.longitude());
+        AddressSnapshot address = addressResolver.resolve(request.latitude(), request.longitude());
         ReportAiAnalyzeResponse aiResponse = reportAiClient.analyzeReport(new ReportAiAnalyzeRequest(
             request.content(),
             request.latitude(),
             request.longitude(),
             occurredAt,
-            null,
-            null,
-            null,
-            null,
+            address.roadAddress(),
+            address.sido(),
+            address.sigungu(),
+            address.eupmyeondong(),
             request.images()
         ));
 
@@ -400,6 +406,9 @@ public class ReportService {
     }
 
     private void validateReportDraftRequest(ReportDraftRequest request) {
+        validateCoordinate("위도", request.latitude(), MIN_LATITUDE, MAX_LATITUDE);
+        validateCoordinate("경도", request.longitude(), MIN_LONGITUDE, MAX_LONGITUDE);
+
         if (request.images() == null || request.images().isEmpty()) {
             return;
         }
@@ -417,6 +426,18 @@ public class ReportService {
                     throw new CustomException("제보 이미지는 image/* 형식만 첨부할 수 있습니다.", ErrorCode.INVALID_FORMAT);
                 }
             });
+    }
+
+    private void validateCoordinate(String name, BigDecimal value, BigDecimal min, BigDecimal max) {
+        if (value == null) {
+            throw new CustomException(name + "는 필수입니다.", ErrorCode.INVALID_PARAMETER);
+        }
+        if (value.compareTo(min) < 0 || value.compareTo(max) > 0) {
+            throw new CustomException(
+                name + "는 " + min.toPlainString() + "부터 " + max.toPlainString() + " 사이여야 합니다.",
+                ErrorCode.INVALID_PARAMETER
+            );
+        }
     }
 
     private ReportCategory resolveReportCategory(ReportAiAnalyzeResponse aiResponse) {
@@ -482,25 +503,4 @@ public class ReportService {
             .put("summary", originalContent);
     }
 
-    private AddressSnapshot resolveAddressSnapshot(BigDecimal latitude, BigDecimal longitude) {
-        String coordinateText = latitude.setScale(7, RoundingMode.HALF_UP)
-            + ", "
-            + longitude.setScale(7, RoundingMode.HALF_UP);
-        return new AddressSnapshot(
-            ADDRESS_NOT_RESOLVED + " (" + coordinateText + ")",
-            ADDRESS_NOT_RESOLVED,
-            ADDRESS_NOT_RESOLVED,
-            ADDRESS_NOT_RESOLVED,
-            ADDRESS_NOT_RESOLVED
-        );
-    }
-
-    private record AddressSnapshot(
-        String roadAddress,
-        String jibunAddress,
-        String sido,
-        String sigungu,
-        String eupmyeondong
-    ) {
-    }
 }

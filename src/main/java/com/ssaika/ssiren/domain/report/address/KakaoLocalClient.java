@@ -1,0 +1,123 @@
+package com.ssaika.ssiren.domain.report.address;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.ssaika.ssiren.global.config.KakaoLocalProperties;
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Optional;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.stereotype.Component;
+import org.springframework.web.reactive.function.client.WebClient;
+
+@Slf4j
+@Component
+public class KakaoLocalClient {
+
+    private static final String AUTHORIZATION_PREFIX = "KakaoAK ";
+    private static final String COORDINATE_SYSTEM = "WGS84";
+
+    private final WebClient kakaoLocalWebClient;
+    private final KakaoLocalProperties kakaoLocalProperties;
+
+    public KakaoLocalClient(
+        @Qualifier("kakaoLocalWebClient") WebClient kakaoLocalWebClient,
+        KakaoLocalProperties kakaoLocalProperties
+    ) {
+        this.kakaoLocalWebClient = kakaoLocalWebClient;
+        this.kakaoLocalProperties = kakaoLocalProperties;
+    }
+
+    public Optional<KakaoCoord2AddressResponse> coord2Address(BigDecimal latitude, BigDecimal longitude) {
+        if (!kakaoLocalProperties.hasRestApiKey()) {
+            return Optional.empty();
+        }
+
+        try {
+            KakaoCoord2AddressResponse response = kakaoLocalWebClient.get()
+                .uri(uriBuilder -> uriBuilder
+                    .path("/v2/local/geo/coord2address.json")
+                    .queryParam("x", longitude)
+                    .queryParam("y", latitude)
+                    .queryParam("input_coord", COORDINATE_SYSTEM)
+                    .build())
+                .header("Authorization", AUTHORIZATION_PREFIX + kakaoLocalProperties.getRestApiKey())
+                .retrieve()
+                .bodyToMono(KakaoCoord2AddressResponse.class)
+                .block();
+
+            return Optional.ofNullable(response);
+        } catch (RuntimeException e) {
+            log.warn("Failed to call Kakao coord2address API. latitude={}, longitude={}", latitude, longitude, e);
+            return Optional.empty();
+        }
+    }
+
+    public Optional<KakaoCoord2RegionCodeResponse> coord2RegionCode(BigDecimal latitude, BigDecimal longitude) {
+        if (!kakaoLocalProperties.hasRestApiKey()) {
+            return Optional.empty();
+        }
+
+        try {
+            KakaoCoord2RegionCodeResponse response = kakaoLocalWebClient.get()
+                .uri(uriBuilder -> uriBuilder
+                    .path("/v2/local/geo/coord2regioncode.json")
+                    .queryParam("x", longitude)
+                    .queryParam("y", latitude)
+                    .queryParam("input_coord", COORDINATE_SYSTEM)
+                    .build())
+                .header("Authorization", AUTHORIZATION_PREFIX + kakaoLocalProperties.getRestApiKey())
+                .retrieve()
+                .bodyToMono(KakaoCoord2RegionCodeResponse.class)
+                .block();
+
+            return Optional.ofNullable(response);
+        } catch (RuntimeException e) {
+            log.warn("Failed to call Kakao coord2regioncode API. latitude={}, longitude={}", latitude, longitude, e);
+            return Optional.empty();
+        }
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record KakaoCoord2AddressResponse(List<AddressDocument> documents) {
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record AddressDocument(
+        Address address,
+        @JsonProperty("road_address") RoadAddress roadAddress
+    ) {
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record Address(
+        @JsonProperty("address_name") String addressName,
+        @JsonProperty("region_1depth_name") String sido,
+        @JsonProperty("region_2depth_name") String sigungu,
+        @JsonProperty("region_3depth_name") String eupmyeondong
+    ) {
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record RoadAddress(
+        @JsonProperty("address_name") String addressName,
+        @JsonProperty("region_1depth_name") String sido,
+        @JsonProperty("region_2depth_name") String sigungu,
+        @JsonProperty("region_3depth_name") String eupmyeondong
+    ) {
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record KakaoCoord2RegionCodeResponse(List<RegionDocument> documents) {
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record RegionDocument(
+        @JsonProperty("region_type") String regionType,
+        @JsonProperty("region_1depth_name") String sido,
+        @JsonProperty("region_2depth_name") String sigungu,
+        @JsonProperty("region_3depth_name") String eupmyeondong
+    ) {
+    }
+}
