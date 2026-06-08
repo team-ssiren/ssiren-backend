@@ -1,8 +1,16 @@
 package com.ssaika.ssiren.domain.report.controller;
 
 import com.ssaika.ssiren.domain.report.dto.request.MyReportUpdateRequest;
+import com.ssaika.ssiren.domain.report.dto.request.ReportDraftRequest;
 import com.ssaika.ssiren.domain.report.dto.request.ReportReactionRequest;
-import com.ssaika.ssiren.domain.report.dto.response.*;
+import com.ssaika.ssiren.domain.report.dto.response.MyReportDeleteResponse;
+import com.ssaika.ssiren.domain.report.dto.response.MyReportDetailResponse;
+import com.ssaika.ssiren.domain.report.dto.response.MyReportResponse;
+import com.ssaika.ssiren.domain.report.dto.response.MyReportUpdateResponse;
+import com.ssaika.ssiren.domain.report.dto.response.ReportCategoryResponse;
+import com.ssaika.ssiren.domain.report.dto.response.ReportDraftCreateResponse;
+import com.ssaika.ssiren.domain.report.dto.response.ReportListResponse;
+import com.ssaika.ssiren.domain.report.dto.response.ReportReactionResponse;
 import com.ssaika.ssiren.domain.report.service.ReportService;
 import com.ssaika.ssiren.global.dto.BaseResponse;
 import com.ssaika.ssiren.global.dto.ListResponseDto;
@@ -13,10 +21,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -34,6 +45,15 @@ public class ReportController {
     private static final Long TEST_USER_ID = 1L;
 
     private final ReportService reportService;
+
+    @PostMapping(value = "/drafts", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<BaseResponse<ReportDraftCreateResponse>> createReportDraft(
+        @AuthenticationPrincipal Long userId,
+        @ModelAttribute @Valid ReportDraftRequest request) {
+        ReportDraftCreateResponse response = reportService.createReportDraft(userId, request);
+
+        return ResponseEntity.ok(BaseResponse.success("제보 초안 생성 성공", response));
+    }
 
     @GetMapping
     public ResponseEntity<BaseResponse<PageResponseDto<ReportListResponse>>> getReports(

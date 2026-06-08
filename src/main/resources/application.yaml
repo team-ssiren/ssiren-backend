@@ -5,6 +5,10 @@ spring:
       - optional:file:ssiren-backend/.env[.properties]
   application:
     name: ssiren
+  servlet:
+    multipart:
+      max-file-size: ${SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE:50MB}
+      max-request-size: ${SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE:250MB}
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:15432/ssiren}
     username: ${SPRING_DATASOURCE_USERNAME:ssiren}
@@ -36,3 +40,16 @@ jwt:
 firebase:
   service-account-path: ${FIREBASE_SERVICE_ACCOUNT_PATH:}
   service-account-json: ${FIREBASE_SERVICE_ACCOUNT_JSON:}
+
+ai:
+  client:
+    base-url: ${AI_BASE_URL:http://localhost:8000}
+    connect-timeout-ms: ${AI_CONNECT_TIMEOUT_MS:3000}
+    response-timeout-ms: ${AI_RESPONSE_TIMEOUT_MS:30000}
+
+kakao:
+  local:
+    rest-api-key: ${KAKAO_REST_API_KEY:}
+    base-url: ${KAKAO_LOCAL_BASE_URL:https://dapi.kakao.com}
+    connect-timeout-ms: ${KAKAO_LOCAL_CONNECT_TIMEOUT_MS:3000}
+    response-timeout-ms: ${KAKAO_LOCAL_RESPONSE_TIMEOUT_MS:5000}

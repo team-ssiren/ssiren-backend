@@ -12,6 +12,9 @@ public interface ReportCategoryRepository extends JpaRepository<ReportCategory, 
     @EntityGraph(attributePaths = {"department", "parentCategory"})
     Optional<ReportCategory> findWithDepartmentById(Long id);
 
+    @EntityGraph(attributePaths = {"department", "department.agencyType", "parentCategory", "parentCategory.department"})
+    Optional<ReportCategory> findByCategoryCode(String categoryCode);
+
     @EntityGraph(attributePaths = {"parentCategory"})
     List<ReportCategory> findAllByOrderByIdAsc();
 }
