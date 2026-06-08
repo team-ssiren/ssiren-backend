@@ -7,6 +7,8 @@ import com.ssaika.ssiren.domain.report.dto.response.MyReportDetailResponse;
 import com.ssaika.ssiren.domain.report.dto.response.MyReportResponse;
 import com.ssaika.ssiren.domain.report.dto.request.MyReportUpdateRequest;
 import com.ssaika.ssiren.domain.report.dto.request.ReportReactionRequest;
+import com.ssaika.ssiren.domain.report.dto.response.IssueDetailResponse;
+import com.ssaika.ssiren.domain.report.dto.response.IssueResponse;
 import com.ssaika.ssiren.domain.report.dto.response.MyReportDeleteResponse;
 import com.ssaika.ssiren.domain.report.dto.response.MyReportUpdateResponse;
 import com.ssaika.ssiren.domain.report.dto.response.ReportReactionResponse;
@@ -25,12 +27,14 @@ import com.ssaika.ssiren.domain.report.repository.ReportSpecification;
 import com.ssaika.ssiren.domain.report.repository.ReportStatusHistoryRepository;
 import com.ssaika.ssiren.domain.user.entity.User;
 import com.ssaika.ssiren.domain.user.repository.UserRepository;
+import com.ssaika.ssiren.global.enums.IssueGroupStatus;
 import com.ssaika.ssiren.global.enums.ReportStatus;
 import com.ssaika.ssiren.global.enums.ReportVisibility;
 import com.ssaika.ssiren.global.enums.ReportReactionType;
 import com.ssaika.ssiren.domain.report.dto.response.ReportListResponse;
 import com.ssaika.ssiren.global.exception.CustomException;
 import com.ssaika.ssiren.global.exception.ErrorCode;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -42,6 +46,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -60,6 +65,87 @@ public class ReportService {
     private final ReportReactionLogRepository reportReactionLogRepository;
     private final UserRepository userRepository;
     private final ObjectMapper objectMapper;
+
+    public List<IssueResponse> getIssues(
+        BigDecimal latitude,
+        BigDecimal longitude,
+        Integer radiusMeters,
+        BigDecimal swLat,
+        BigDecimal swLng,
+        BigDecimal neLat,
+        BigDecimal neLng,
+        Long categoryId,
+        Long agencyId,
+        IssueGroupStatus status,
+        BigDecimal riskMin,
+        BigDecimal riskMax,
+        String from,
+        String to) {
+        validateRadiusParameters(latitude, longitude, radiusMeters);
+        validateBoundsParameters(swLat, swLng, neLat, neLng);
+        validateRiskRange(riskMin, riskMax);
+        validateBoundsRange(swLat, swLng, neLat, neLng);
+        LocalDateTime fromDateTime = parseFromDateTime(from);
+        LocalDateTime toDateTime = parseToDateTime(to);
+        validateDateRange(fromDateTime, toDateTime);
+        log.info(
+            "Get issues. latitude={}, longitude={}, radiusMeters={}, swLat={}, swLng={}, "
+                + "neLat={}, neLng={}, categoryId={}, agencyId={}, status={}, riskMin={}, "
+                + "riskMax={}, from={}, to={}",
+            latitude,
+            longitude,
+            radiusMeters,
+            swLat,
+            swLng,
+            neLat,
+            neLng,
+            categoryId,
+            agencyId,
+            status,
+            riskMin,
+            riskMax,
+            fromDateTime,
+            toDateTime
+        );
+
+        Specification<Report> specification = ReportSpecification.isRepresentative()
+            .and(ReportSpecification.hasVisibility(ReportVisibility.PUBLIC))
+            .and(ReportSpecification.isNotDeleted())
+            .and(ReportSpecification.hasCategory(categoryId))
+            .and(ReportSpecification.hasAgencyType(agencyId))
+            .and(ReportSpecification.hasIssueGroupStatus(status))
+            .and(ReportSpecification.issueGroupRiskScoreFrom(riskMin))
+            .and(ReportSpecification.issueGroupRiskScoreTo(riskMax))
+            .and(ReportSpecification.recentReportedAtFrom(fromDateTime))
+            .and(ReportSpecification.recentReportedAtTo(toDateTime))
+            .and(ReportSpecification.issueGroupInBounds(swLat, swLng, neLat, neLng))
+            .and(ReportSpecification.issueGroupWithinRadius(latitude, longitude, radiusMeters));
+
+        return reportRepository.findAll(specification, Sort.by(Sort.Direction.DESC, "issueGroup.riskScore"))
+            .stream()
+            .map(report -> IssueResponse.from(report, objectMapper))
+            .toList();
+    }
+
+    public IssueDetailResponse getIssue(Long issueGroupId) {
+        log.info("Get issue detail. issueGroupId={}", issueGroupId);
+
+        IssueGroup issueGroup = issueGroupRepository.findById(issueGroupId)
+            .orElseThrow(() -> new CustomException("?댁뒋 洹몃９???李얠쓣 ???놁뒿?덈떎.", ErrorCode.NOT_FOUND));
+        Specification<Report> specification = ReportSpecification.hasIssueGroup(issueGroupId)
+            .and(ReportSpecification.hasVisibility(ReportVisibility.PUBLIC))
+            .and(ReportSpecification.isNotDeleted());
+        List<Report> reports = reportRepository.findAll(
+            specification,
+            Sort.by(Sort.Direction.DESC, "createdAt")
+        );
+        Report representativeReport = reports.stream()
+            .filter(Report::getIsRepresentative)
+            .findFirst()
+            .orElseGet(() -> reports.isEmpty() ? null : reports.get(0));
+
+        return IssueDetailResponse.from(issueGroup, representativeReport, reports, objectMapper);
+    }
 
     public Page<ReportListResponse> getReports(
         ReportStatus status,
@@ -281,6 +367,56 @@ public class ReportService {
     private void validateDateRange(LocalDateTime from, LocalDateTime to) {
         if (from != null && to != null && from.isAfter(to)) {
             throw new CustomException("조회 시작일은 종료일보다 늦을 수 없습니다.", ErrorCode.INVALID_PARAMETER);
+        }
+    }
+
+    private void validateRadiusParameters(
+        BigDecimal latitude,
+        BigDecimal longitude,
+        Integer radiusMeters) {
+        boolean hasAnyRadiusParameter =
+            latitude != null || longitude != null || radiusMeters != null;
+        boolean hasAllRadiusParameters =
+            latitude != null && longitude != null && radiusMeters != null;
+        if (hasAnyRadiusParameter && !hasAllRadiusParameters) {
+            throw new CustomException("諛섍꼍 議고쉶 ?뚮씪誘명꽣媛 遺議깊빀?덈떎.", ErrorCode.MISSING_PARAMETER);
+        }
+        if (radiusMeters != null && radiusMeters <= 0) {
+            throw new CustomException("諛섍꼍???양닔?ъ빞 ?⑸땲??", ErrorCode.INVALID_PARAMETER);
+        }
+    }
+
+    private void validateBoundsParameters(
+        BigDecimal swLat,
+        BigDecimal swLng,
+        BigDecimal neLat,
+        BigDecimal neLng) {
+        boolean hasAnyBoundsParameter =
+            swLat != null || swLng != null || neLat != null || neLng != null;
+        boolean hasAllBoundsParameters =
+            swLat != null && swLng != null && neLat != null && neLng != null;
+        if (hasAnyBoundsParameter && !hasAllBoundsParameters) {
+            throw new CustomException("吏???곸뿭 議고쉶 ?뚮씪誘명꽣媛 遺議깊빀?덈떎.", ErrorCode.MISSING_PARAMETER);
+        }
+    }
+
+    private void validateRiskRange(BigDecimal riskMin, BigDecimal riskMax) {
+        if (riskMin != null && riskMax != null && riskMin.compareTo(riskMax) > 0) {
+            throw new CustomException("理쒖냼 ?꾪뿕 ?먯닔媛 理쒕? ?꾪뿕 ?먯닔蹂대떎 ?대쓣 ???놁뒿?덈떎.",
+                ErrorCode.INVALID_PARAMETER);
+        }
+    }
+
+    private void validateBoundsRange(
+        BigDecimal swLat,
+        BigDecimal swLng,
+        BigDecimal neLat,
+        BigDecimal neLng) {
+        if (swLat == null || swLng == null || neLat == null || neLng == null) {
+            return;
+        }
+        if (swLat.compareTo(neLat) > 0 || swLng.compareTo(neLng) > 0) {
+            throw new CustomException("吏???곸뿭 踰붿쐞媛 ?щ컮瑜댁? ?딆뒿?덈떎.", ErrorCode.INVALID_PARAMETER);
         }
     }
 
