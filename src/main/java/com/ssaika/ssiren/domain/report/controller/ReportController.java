@@ -2,14 +2,10 @@ package com.ssaika.ssiren.domain.report.controller;
 
 import com.ssaika.ssiren.domain.report.dto.request.MyReportUpdateRequest;
 import com.ssaika.ssiren.domain.report.dto.request.ReportReactionRequest;
-import com.ssaika.ssiren.domain.report.dto.response.MyReportDeleteResponse;
-import com.ssaika.ssiren.domain.report.dto.response.MyReportDetailResponse;
-import com.ssaika.ssiren.domain.report.dto.response.MyReportResponse;
-import com.ssaika.ssiren.domain.report.dto.response.MyReportUpdateResponse;
-import com.ssaika.ssiren.domain.report.dto.response.ReportListResponse;
-import com.ssaika.ssiren.domain.report.dto.response.ReportReactionResponse;
+import com.ssaika.ssiren.domain.report.dto.response.*;
 import com.ssaika.ssiren.domain.report.service.ReportService;
 import com.ssaika.ssiren.global.dto.BaseResponse;
+import com.ssaika.ssiren.global.dto.ListResponseDto;
 import com.ssaika.ssiren.global.dto.PageResponseDto;
 import com.ssaika.ssiren.global.enums.ReportStatus;
 import jakarta.validation.Valid;
@@ -104,5 +100,14 @@ public class ReportController {
         );
 
         return ResponseEntity.ok(BaseResponse.success("제보 반응 반영 성공", response));
+    }
+
+    @GetMapping("/categories")
+    public ResponseEntity<BaseResponse<ListResponseDto<ReportCategoryResponse>>> getReportCategories() {
+        ListResponseDto<ReportCategoryResponse> response = ListResponseDto.from(
+                reportService.getReportCategories()
+        );
+
+        return ResponseEntity.ok(BaseResponse.success("제보 카테고리 목록 조회 성공", response));
     }
 }

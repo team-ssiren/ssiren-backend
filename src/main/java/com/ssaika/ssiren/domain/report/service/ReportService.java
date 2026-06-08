@@ -3,15 +3,9 @@ package com.ssaika.ssiren.domain.report.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.ssaika.ssiren.domain.report.dto.response.MyReportDetailResponse;
-import com.ssaika.ssiren.domain.report.dto.response.MyReportResponse;
+import com.ssaika.ssiren.domain.report.dto.response.*;
 import com.ssaika.ssiren.domain.report.dto.request.MyReportUpdateRequest;
 import com.ssaika.ssiren.domain.report.dto.request.ReportReactionRequest;
-import com.ssaika.ssiren.domain.report.dto.response.IssueDetailResponse;
-import com.ssaika.ssiren.domain.report.dto.response.IssueResponse;
-import com.ssaika.ssiren.domain.report.dto.response.MyReportDeleteResponse;
-import com.ssaika.ssiren.domain.report.dto.response.MyReportUpdateResponse;
-import com.ssaika.ssiren.domain.report.dto.response.ReportReactionResponse;
 import com.ssaika.ssiren.domain.report.entity.IssueGroup;
 import com.ssaika.ssiren.domain.report.entity.Report;
 import com.ssaika.ssiren.domain.report.entity.ReportCategory;
@@ -31,7 +25,6 @@ import com.ssaika.ssiren.global.enums.IssueGroupStatus;
 import com.ssaika.ssiren.global.enums.ReportStatus;
 import com.ssaika.ssiren.global.enums.ReportVisibility;
 import com.ssaika.ssiren.global.enums.ReportReactionType;
-import com.ssaika.ssiren.domain.report.dto.response.ReportListResponse;
 import com.ssaika.ssiren.global.exception.CustomException;
 import com.ssaika.ssiren.global.exception.ErrorCode;
 import java.math.BigDecimal;
@@ -338,6 +331,15 @@ public class ReportService {
         reportReactionLogRepository.flush();
 
         return ReportReactionResponse.from(reactionLog, report, objectMapper);
+    }
+
+    public List<ReportCategoryResponse> getReportCategories() {
+        log.info("Get report categories.");
+
+        return reportCategoryRepository.findAllByOrderByIdAsc()
+                .stream()
+                .map(ReportCategoryResponse::from)
+                .toList();
     }
 
     private LocalDateTime parseFromDateTime(String value) {
