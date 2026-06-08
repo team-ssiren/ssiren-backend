@@ -14,6 +14,8 @@ cd ssiren-backend
 cp .env.example .env
 ```
 
+`.env.example`은 공유용 템플릿이므로 실제 값은 `.env`에 채워 넣습니다.
+
 ## 실행
 
 ```bash
@@ -25,6 +27,9 @@ docker compose up --build
 ```bash
 docker compose up --build -d
 ```
+
+PostgreSQL은 로컬 개발 환경의 5432 포트 충돌을 피하기 위해 호스트 `15432` 포트로 노출됩니다.
+IntelliJ에서 Spring Boot를 로컬로 실행할 때는 백엔드 루트의 `.env`를 자동 로드하며, 기본 접속값은 다음과 같습니다.
 
 ## 종료
 
