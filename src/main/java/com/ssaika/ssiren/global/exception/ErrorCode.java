@@ -52,7 +52,14 @@ public enum ErrorCode {
     NICKNAME_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 존재하는 닉네임입니다."),
     USER_WITHDRAW(HttpStatus.FORBIDDEN, "탈퇴한 유저입니다."),
     OAUTH_TEMP_SAVE_FAILED(HttpStatus.BAD_REQUEST, "임시 저장 실패"),
-    USER_ROLE_TYPE_MISMATCH(HttpStatus.BAD_REQUEST, "유효하지 않은 사용자 역할입니다.");
+    USER_ROLE_TYPE_MISMATCH(HttpStatus.BAD_REQUEST, "유효하지 않은 사용자 역할입니다."),
+
+    // ============================================================
+    // * AI
+    // ============================================================
+    AI_SERVER_CONNECTION_FAILED(HttpStatus.BAD_GATEWAY, "AI 서버에 연결할 수 없습니다."),
+    AI_SERVER_TIMEOUT(HttpStatus.GATEWAY_TIMEOUT, "AI 서버 응답 시간이 초과되었습니다."),
+    AI_SERVER_RESPONSE_ERROR(HttpStatus.BAD_GATEWAY, "AI 서버 응답이 올바르지 않습니다.");
 
 
 
