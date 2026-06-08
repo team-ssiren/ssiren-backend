@@ -31,6 +31,12 @@ public class ReportSpecification {
             : criteriaBuilder.equal(root.get("category").get("id"), categoryId);
     }
 
+    public static Specification<Report> hasIssueGroup(Long issueGroupId) {
+        return (root, query, criteriaBuilder) -> issueGroupId == null
+            ? criteriaBuilder.conjunction()
+            : criteriaBuilder.equal(root.get("issueGroup").get("id"), issueGroupId);
+    }
+
     public static Specification<Report> hasAgencyType(Long agencyId) {
         return (root, query, criteriaBuilder) -> agencyId == null
             ? criteriaBuilder.conjunction()

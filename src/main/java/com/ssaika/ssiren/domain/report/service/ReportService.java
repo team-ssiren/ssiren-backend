@@ -7,6 +7,7 @@ import com.ssaika.ssiren.domain.report.dto.response.MyReportDetailResponse;
 import com.ssaika.ssiren.domain.report.dto.response.MyReportResponse;
 import com.ssaika.ssiren.domain.report.dto.request.MyReportUpdateRequest;
 import com.ssaika.ssiren.domain.report.dto.request.ReportReactionRequest;
+import com.ssaika.ssiren.domain.report.dto.response.IssueDetailResponse;
 import com.ssaika.ssiren.domain.report.dto.response.IssueResponse;
 import com.ssaika.ssiren.domain.report.dto.response.MyReportDeleteResponse;
 import com.ssaika.ssiren.domain.report.dto.response.MyReportUpdateResponse;
@@ -124,6 +125,26 @@ public class ReportService {
             .stream()
             .map(report -> IssueResponse.from(report, objectMapper))
             .toList();
+    }
+
+    public IssueDetailResponse getIssue(Long issueGroupId) {
+        log.info("Get issue detail. issueGroupId={}", issueGroupId);
+
+        IssueGroup issueGroup = issueGroupRepository.findById(issueGroupId)
+            .orElseThrow(() -> new CustomException("?댁뒋 洹몃９???李얠쓣 ???놁뒿?덈떎.", ErrorCode.NOT_FOUND));
+        Specification<Report> specification = ReportSpecification.hasIssueGroup(issueGroupId)
+            .and(ReportSpecification.hasVisibility(ReportVisibility.PUBLIC))
+            .and(ReportSpecification.isNotDeleted());
+        List<Report> reports = reportRepository.findAll(
+            specification,
+            Sort.by(Sort.Direction.DESC, "createdAt")
+        );
+        Report representativeReport = reports.stream()
+            .filter(Report::getIsRepresentative)
+            .findFirst()
+            .orElseGet(() -> reports.isEmpty() ? null : reports.get(0));
+
+        return IssueDetailResponse.from(issueGroup, representativeReport, reports, objectMapper);
     }
 
     public Page<ReportListResponse> getReports(

@@ -1,5 +1,6 @@
 package com.ssaika.ssiren.domain.report.controller;
 
+import com.ssaika.ssiren.domain.report.dto.response.IssueDetailResponse;
 import com.ssaika.ssiren.domain.report.dto.response.IssueListResponse;
 import com.ssaika.ssiren.domain.report.service.ReportService;
 import com.ssaika.ssiren.global.dto.BaseResponse;
@@ -9,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -57,5 +59,13 @@ public class IssueController {
         );
 
         return ResponseEntity.ok(BaseResponse.success("이슈 그룹 조회 성공", response));
+    }
+
+    @GetMapping("/{issueGroupId}")
+    public ResponseEntity<BaseResponse<IssueDetailResponse>> getIssue(
+        @PathVariable Long issueGroupId) {
+        IssueDetailResponse response = reportService.getIssue(issueGroupId);
+
+        return ResponseEntity.ok(BaseResponse.success("이슈 그룹 상세 조회 성공", response));
     }
 }

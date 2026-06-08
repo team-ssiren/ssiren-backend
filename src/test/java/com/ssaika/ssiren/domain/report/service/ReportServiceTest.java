@@ -7,6 +7,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ssaika.ssiren.domain.report.entity.IssueGroup;
 import com.ssaika.ssiren.domain.report.entity.Report;
 import com.ssaika.ssiren.domain.report.repository.IssueGroupRepository;
 import com.ssaika.ssiren.domain.report.repository.ReportCategoryRepository;
@@ -178,6 +179,31 @@ class ReportServiceTest {
             .isInstanceOf(CustomException.class);
 
         verify(reportRepository, never()).findAll(anyReportSpecification(), any(Sort.class));
+    }
+
+    @Test
+    void getIssueThrowsExceptionWhenIssueGroupDoesNotExist() {
+        when(issueGroupRepository.findById(1L))
+            .thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> reportService.getIssue(1L))
+            .isInstanceOf(CustomException.class);
+
+        verify(reportRepository, never()).findAll(anyReportSpecification(), any(Sort.class));
+    }
+
+    @Test
+    void getIssueReturnsReportsInIssueGroup() {
+        IssueGroup issueGroup = org.mockito.Mockito.mock(IssueGroup.class);
+        when(issueGroupRepository.findById(1L))
+            .thenReturn(Optional.of(issueGroup));
+        when(reportRepository.findAll(anyReportSpecification(), any(Sort.class)))
+            .thenReturn(List.of());
+
+        reportService.getIssue(1L);
+
+        verify(issueGroupRepository).findById(1L);
+        verify(reportRepository).findAll(anyReportSpecification(), any(Sort.class));
     }
 
     @Test
