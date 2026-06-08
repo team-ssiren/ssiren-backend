@@ -135,7 +135,11 @@ public class ReportAiHttpClient implements ReportAiClient {
         if (isTimeout(e)) {
             return new CustomException(ErrorCode.AI_SERVER_TIMEOUT.getMessage(), ErrorCode.AI_SERVER_TIMEOUT);
         }
-        if (e instanceof WebClientRequestException) {
+        if (e instanceof WebClientRequestException requestException) {
+            log.warn("AI report analyze request failed. uri={}, message={}",
+                requestException.getUri(),
+                requestException.getMessage()
+            );
             return new CustomException(
                 ErrorCode.AI_SERVER_CONNECTION_FAILED.getMessage(),
                 ErrorCode.AI_SERVER_CONNECTION_FAILED

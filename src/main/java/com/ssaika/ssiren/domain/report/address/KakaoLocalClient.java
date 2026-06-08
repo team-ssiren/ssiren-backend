@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 @Slf4j
 @Component
@@ -49,7 +50,7 @@ public class KakaoLocalClient {
 
             return Optional.ofNullable(response);
         } catch (RuntimeException e) {
-            log.warn("Failed to call Kakao coord2address API. latitude={}, longitude={}", latitude, longitude, e);
+            logKakaoFailure("coord2address", latitude, longitude, e);
             return Optional.empty();
         }
     }
@@ -74,9 +75,31 @@ public class KakaoLocalClient {
 
             return Optional.ofNullable(response);
         } catch (RuntimeException e) {
-            log.warn("Failed to call Kakao coord2regioncode API. latitude={}, longitude={}", latitude, longitude, e);
+            logKakaoFailure("coord2regioncode", latitude, longitude, e);
             return Optional.empty();
         }
+    }
+
+    private void logKakaoFailure(String apiName, BigDecimal latitude, BigDecimal longitude, RuntimeException e) {
+        if (e instanceof WebClientResponseException responseException) {
+            log.warn(
+                "Failed to call Kakao {} API. status={}, latitude={}, longitude={}, body={}",
+                apiName,
+                responseException.getStatusCode(),
+                latitude,
+                longitude,
+                responseException.getResponseBodyAsString()
+            );
+            return;
+        }
+
+        log.warn(
+            "Failed to call Kakao {} API. latitude={}, longitude={}, message={}",
+            apiName,
+            latitude,
+            longitude,
+            e.getMessage()
+        );
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
