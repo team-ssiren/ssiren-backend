@@ -57,13 +57,19 @@ import com.ssaika.ssiren.global.exception.ErrorCode;
 import com.ssaika.ssiren.global.util.ReportImageStorage;
 import com.ssaika.ssiren.global.util.ReportImageStorage.UploadedReportImage;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeParseException;
+import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -88,6 +94,7 @@ public class ReportService {
     private static final int MAX_REPORT_DRAFT_IMAGE_COUNT = 5;
     private static final long MAX_REPORT_DRAFT_IMAGE_SIZE = 50 * 1024 * 1024;
     private static final int REPORT_EMBEDDING_DIMENSION = 1024;
+    private static final double EARTH_RADIUS_METERS = 6_371_000;
     private static final String ADDRESS_NOT_RESOLVED = "주소 확인 필요";
 
     private final ReportRepository reportRepository;
@@ -174,15 +181,7 @@ public class ReportService {
         Department department = getDepartment(request.departmentId());
         validateCategoryDepartment(category, department);
 
-        // TODO: 기존 이슈 그룹 병합 판단 로직이 추가되면 request.issueGroupId() 또는 후보 그룹을 여기서 반영한다.
-        IssueGroup issueGroup = issueGroupRepository.save(IssueGroup.create(
-            request.title(),
-            resolveIssueGroupContent(request.contents()),
-            request.latitude(),
-            request.longitude(),
-            LocalDateTime.now(),
-            request.riskScore()
-        ));
+        IssueGroup issueGroup = resolveIssueGroupForCreate(request);
 
         Report report = reportRepository.saveAndFlush(Report.create(
             request.title(),
@@ -198,6 +197,7 @@ public class ReportService {
             request.riskScore(),
             request.visibility(),
             toPgVector(request.embedding()),
+            issueGroup.getReportCount() == 1,
             user,
             category,
             issueGroup,
@@ -227,6 +227,178 @@ public class ReportService {
             mergeRule.getLinkRadiusMeters(),
             mergeRule.getMinEmbeddingSimilarity()
         );
+    }
+
+    private IssueGroup resolveIssueGroupForCreate(ReportCreateRequest request) {
+        String embedding = toPgVector(request.embedding());
+        if (embedding == null) {
+            return createNewIssueGroup(request);
+        }
+
+        ReportCategoryMergeRule mergeRule = reportCategoryMergeRuleRepository.findByCategory_Id(request.categoryId())
+            .orElseThrow(() -> new CustomException("카테고리 병합 기준을 찾을 수 없습니다.", ErrorCode.NOT_FOUND));
+        List<DuplicateReportCandidate> candidates = reportRepository.findDuplicateCandidates(
+            request.categoryId(),
+            request.departmentId(),
+            request.latitude(),
+            request.longitude(),
+            embedding,
+            mergeRule.getLinkRadiusMeters(),
+            mergeRule.getMinEmbeddingSimilarity()
+        );
+
+        return selectMergeTarget(request, mergeRule, candidates)
+            .map(target -> mergeIssueGroup(request, target))
+            .orElseGet(() -> createNewIssueGroup(request));
+    }
+
+    private java.util.Optional<MergeTarget> selectMergeTarget(
+        ReportCreateRequest request,
+        ReportCategoryMergeRule mergeRule,
+        List<DuplicateReportCandidate> candidates) {
+        if (candidates.isEmpty()) {
+            return java.util.Optional.empty();
+        }
+
+        Map<Long, IssueGroup> issueGroups = issueGroupRepository.findAllById(candidateIssueGroupIds(candidates))
+            .stream()
+            .collect(Collectors.toMap(IssueGroup::getId, Function.identity()));
+        Map<Long, List<Report>> reportsByIssueGroup = reportRepository
+            .findByIssueGroup_IdInAndIsDeletedFalse(issueGroups.keySet())
+            .stream()
+            .collect(Collectors.groupingBy(report -> report.getIssueGroup().getId()));
+
+        return candidates.stream()
+            .map(candidate -> createMergeTarget(request, mergeRule, candidate, issueGroups, reportsByIssueGroup))
+            .filter(Objects::nonNull)
+            .filter(target -> target.score().compareTo(mergeRule.getAutoMergeThreshold()) >= 0)
+            .max(Comparator.comparing(MergeTarget::score));
+    }
+
+    private Set<Long> candidateIssueGroupIds(List<DuplicateReportCandidate> candidates) {
+        return candidates.stream()
+            .map(DuplicateReportCandidate::getCandidateIssueGroupId)
+            .filter(Objects::nonNull)
+            .collect(Collectors.toCollection(HashSet::new));
+    }
+
+    private MergeTarget createMergeTarget(
+        ReportCreateRequest request,
+        ReportCategoryMergeRule mergeRule,
+        DuplicateReportCandidate candidate,
+        Map<Long, IssueGroup> issueGroups,
+        Map<Long, List<Report>> reportsByIssueGroup) {
+        IssueGroup issueGroup = issueGroups.get(candidate.getCandidateIssueGroupId());
+        if (issueGroup == null) {
+            return null;
+        }
+
+        List<Report> groupReports = reportsByIssueGroup.getOrDefault(issueGroup.getId(), List.of());
+        BigDecimal newGroupDiameter = calculateNewGroupDiameter(request, issueGroup, groupReports);
+        BigDecimal maxGroupDiameter = BigDecimal.valueOf(mergeRule.getMaxGroupDiameterMeters());
+        if (newGroupDiameter.compareTo(maxGroupDiameter) > 0) {
+            return null;
+        }
+
+        BigDecimal score = calculateMergeScore(candidate, mergeRule, newGroupDiameter);
+        return new MergeTarget(issueGroup, groupReports, newGroupDiameter, score);
+    }
+
+    private IssueGroup mergeIssueGroup(ReportCreateRequest request, MergeTarget target) {
+        Coordinate center = calculateGroupCenter(request, target.groupReports());
+        target.issueGroup().mergeReport(
+            center.latitude(),
+            center.longitude(),
+            target.newGroupDiameter(),
+            request.riskScore(),
+            LocalDateTime.now()
+        );
+        return target.issueGroup();
+    }
+
+    private IssueGroup createNewIssueGroup(ReportCreateRequest request) {
+        return issueGroupRepository.save(IssueGroup.create(
+            request.title(),
+            resolveIssueGroupContent(request.contents()),
+            request.latitude(),
+            request.longitude(),
+            LocalDateTime.now(),
+            request.riskScore()
+        ));
+    }
+
+    private BigDecimal calculateNewGroupDiameter(
+        ReportCreateRequest request,
+        IssueGroup issueGroup,
+        List<Report> groupReports) {
+        BigDecimal currentDiameter = issueGroup.getGroupDiameterMeters() == null
+            ? BigDecimal.ZERO
+            : issueGroup.getGroupDiameterMeters();
+        BigDecimal maxDistanceFromNewReport = groupReports.stream()
+            .map(report -> calculateDistanceMeters(
+                request.latitude(),
+                request.longitude(),
+                report.getLatitude(),
+                report.getLongitude()
+            ))
+            .max(BigDecimal::compareTo)
+            .orElse(BigDecimal.ZERO);
+
+        return currentDiameter.max(maxDistanceFromNewReport);
+    }
+
+    private BigDecimal calculateMergeScore(
+        DuplicateReportCandidate candidate,
+        ReportCategoryMergeRule mergeRule,
+        BigDecimal newGroupDiameter) {
+        double distance = safeDouble(candidate.getDistanceMeters());
+        double similarity = safeDouble(candidate.getEmbeddingSimilarity());
+        double linkRadius = mergeRule.getLinkRadiusMeters();
+        double maxDiameter = mergeRule.getMaxGroupDiameterMeters();
+        double diameter = safeDouble(newGroupDiameter);
+
+        double distanceScore = 30.0 * Math.max(0.0, 1.0 - distance / linkRadius);
+        double embeddingScore = 50.0 * Math.max(0.0, Math.min(1.0, similarity));
+        double diameterScore = 20.0 * Math.max(0.0, 1.0 - diameter / maxDiameter);
+
+        return BigDecimal.valueOf(distanceScore + embeddingScore + diameterScore)
+            .setScale(2, RoundingMode.HALF_UP);
+    }
+
+    private BigDecimal calculateDistanceMeters(
+        BigDecimal latitude1,
+        BigDecimal longitude1,
+        BigDecimal latitude2,
+        BigDecimal longitude2) {
+        double lat1 = Math.toRadians(latitude1.doubleValue());
+        double lat2 = Math.toRadians(latitude2.doubleValue());
+        double deltaLat = lat2 - lat1;
+        double deltaLon = Math.toRadians(longitude2.doubleValue() - longitude1.doubleValue());
+
+        double a = Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2)
+            + Math.cos(lat1) * Math.cos(lat2)
+            * Math.sin(deltaLon / 2) * Math.sin(deltaLon / 2);
+        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return BigDecimal.valueOf(EARTH_RADIUS_METERS * c).setScale(2, RoundingMode.HALF_UP);
+    }
+
+    private Coordinate calculateGroupCenter(ReportCreateRequest request, List<Report> groupReports) {
+        BigDecimal latitudeSum = request.latitude();
+        BigDecimal longitudeSum = request.longitude();
+        for (Report report : groupReports) {
+            latitudeSum = latitudeSum.add(report.getLatitude());
+            longitudeSum = longitudeSum.add(report.getLongitude());
+        }
+
+        BigDecimal count = BigDecimal.valueOf(groupReports.size() + 1L);
+        return new Coordinate(
+            latitudeSum.divide(count, 7, RoundingMode.HALF_UP),
+            longitudeSum.divide(count, 7, RoundingMode.HALF_UP)
+        );
+    }
+
+    private double safeDouble(BigDecimal value) {
+        return value == null ? 0.0 : value.doubleValue();
     }
 
     public List<IssueResponse> getIssues(
@@ -870,6 +1042,20 @@ public class ReportService {
             .put("how", originalContent)
             .put("why", "담당 기관 확인이 필요합니다.")
             .put("summary", originalContent);
+    }
+
+    private record MergeTarget(
+        IssueGroup issueGroup,
+        List<Report> groupReports,
+        BigDecimal newGroupDiameter,
+        BigDecimal score
+    ) {
+    }
+
+    private record Coordinate(
+        BigDecimal latitude,
+        BigDecimal longitude
+    ) {
     }
 
 }

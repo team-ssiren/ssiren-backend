@@ -130,6 +130,7 @@ public class Report extends BaseTime {
         BigDecimal riskScore,
         ReportVisibility visibility,
         String embedding,
+        Boolean isRepresentative,
         User user,
         ReportCategory category,
         IssueGroup issueGroup,
@@ -150,7 +151,7 @@ public class Report extends BaseTime {
             .visibility(visibility)
             .embedding(embedding)
             .isDeleted(false)
-            .isRepresentative(true)
+            .isRepresentative(isRepresentative)
             .user(user)
             .category(category)
             .issueGroup(issueGroup)

@@ -97,6 +97,22 @@ public class IssueGroup extends BaseTime {
         }
     }
 
+    public void mergeReport(
+        BigDecimal groupLatitude,
+        BigDecimal groupLongitude,
+        BigDecimal groupDiameterMeters,
+        BigDecimal riskScore,
+        LocalDateTime recentReportedAt) {
+        this.reportCount++;
+        this.groupLatitude = groupLatitude;
+        this.groupLongitude = groupLongitude;
+        this.groupDiameterMeters = groupDiameterMeters;
+        if (riskScore.compareTo(this.riskScore) > 0) {
+            this.riskScore = riskScore;
+        }
+        this.recentReportedAt = recentReportedAt;
+    }
+
     public void applyReaction(
         ReportReactionType previousReactionType,
         ReportReactionType newReactionType) {

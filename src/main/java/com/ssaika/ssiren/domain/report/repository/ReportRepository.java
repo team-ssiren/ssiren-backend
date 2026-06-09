@@ -2,6 +2,7 @@ package com.ssaika.ssiren.domain.report.repository;
 
 import com.ssaika.ssiren.domain.report.entity.Report;
 import java.math.BigDecimal;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
@@ -48,6 +49,9 @@ public interface ReportRepository extends JpaRepository<Report, Long>, JpaSpecif
     })
     Optional<Report> findByIdAndUser_Id(Long id, Long userId);
 
+    @EntityGraph(attributePaths = {"issueGroup"})
+    List<Report> findByIssueGroup_IdInAndIsDeletedFalse(Collection<Long> issueGroupIds);
+
     @Query(
         value = """
             select
@@ -77,7 +81,7 @@ public interface ReportRepository extends JpaRepository<Report, Long>, JpaSpecif
                     :linkRadiusMeters
                   )
               and (1 - (r.embedding <=> cast(:embedding as vector))) >= :minEmbeddingSimilarity
-            order by embeddingSimilarity desc, distanceMeters asc
+            order by "embeddingSimilarity" desc, "distanceMeters" asc
             """,
         nativeQuery = true
     )
