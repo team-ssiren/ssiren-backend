@@ -113,6 +113,30 @@ public class IssueGroup extends BaseTime {
         this.recentReportedAt = recentReportedAt;
     }
 
+    public void refreshStats(
+        String title,
+        String content,
+        Integer reportCount,
+        BigDecimal groupLatitude,
+        BigDecimal groupLongitude,
+        BigDecimal groupDiameterMeters,
+        BigDecimal riskScore,
+        LocalDateTime recentReportedAt) {
+        this.title = title;
+        this.content = content;
+        this.reportCount = reportCount;
+        this.groupLatitude = groupLatitude;
+        this.groupLongitude = groupLongitude;
+        this.groupDiameterMeters = groupDiameterMeters;
+        this.riskScore = riskScore;
+        this.recentReportedAt = recentReportedAt;
+    }
+
+    public void syncRepresentativeReport(String title, String content) {
+        this.title = title;
+        this.content = content;
+    }
+
     public void applyReaction(
         ReportReactionType previousReactionType,
         ReportReactionType newReactionType) {

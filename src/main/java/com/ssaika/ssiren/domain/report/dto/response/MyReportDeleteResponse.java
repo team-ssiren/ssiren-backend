@@ -24,7 +24,7 @@ public record MyReportDeleteResponse(
             reportImages.stream()
                 .map(ReportImageResponse::from)
                 .toList(),
-            ReportIssueGroupResponse.from(issueGroup)
+            issueGroup == null ? null : ReportIssueGroupResponse.from(issueGroup)
         );
     }
 }

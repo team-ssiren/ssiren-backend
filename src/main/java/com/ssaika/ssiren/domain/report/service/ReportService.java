@@ -382,6 +382,94 @@ public class ReportService {
         return BigDecimal.valueOf(EARTH_RADIUS_METERS * c).setScale(2, RoundingMode.HALF_UP);
     }
 
+    private void refreshIssueGroupByReports(IssueGroup issueGroup, List<Report> reports) {
+        Report representativeReport = normalizeRepresentativeReport(reports);
+        Coordinate center = calculateGroupCenter(reports);
+        issueGroup.refreshStats(
+            representativeReport.getTitle(),
+            resolveIssueGroupContent(parseReportContents(representativeReport)),
+            reports.size(),
+            center.latitude(),
+            center.longitude(),
+            calculateGroupDiameter(reports),
+            calculateMaxRiskScore(reports),
+            calculateRecentReportedAt(reports)
+        );
+    }
+
+    private Report normalizeRepresentativeReport(List<Report> reports) {
+        Report representativeReport = reports.stream()
+            .filter(report -> Boolean.TRUE.equals(report.getIsRepresentative()))
+            .max(Comparator.comparing(this::reportReportedAt))
+            .orElseGet(() -> reports.stream()
+                .max(Comparator.comparing(this::reportReportedAt))
+                .orElseThrow(() -> new CustomException("이슈 그룹 대표 제보를 찾을 수 없습니다.", ErrorCode.NOT_FOUND)));
+
+        for (Report report : reports) {
+            if (report.getId().equals(representativeReport.getId())) {
+                report.markRepresentative();
+                continue;
+            }
+            report.unmarkRepresentative();
+        }
+        return representativeReport;
+    }
+
+    private Coordinate calculateGroupCenter(List<Report> reports) {
+        BigDecimal latitudeSum = BigDecimal.ZERO;
+        BigDecimal longitudeSum = BigDecimal.ZERO;
+        for (Report report : reports) {
+            latitudeSum = latitudeSum.add(report.getLatitude());
+            longitudeSum = longitudeSum.add(report.getLongitude());
+        }
+
+        BigDecimal count = BigDecimal.valueOf(reports.size());
+        return new Coordinate(
+            latitudeSum.divide(count, 7, RoundingMode.HALF_UP),
+            longitudeSum.divide(count, 7, RoundingMode.HALF_UP)
+        );
+    }
+
+    private BigDecimal calculateGroupDiameter(List<Report> reports) {
+        if (reports.size() <= 1) {
+            return BigDecimal.ZERO;
+        }
+
+        BigDecimal maxDistance = BigDecimal.ZERO;
+        for (int i = 0; i < reports.size(); i++) {
+            for (int j = i + 1; j < reports.size(); j++) {
+                Report first = reports.get(i);
+                Report second = reports.get(j);
+                BigDecimal distance = calculateDistanceMeters(
+                    first.getLatitude(),
+                    first.getLongitude(),
+                    second.getLatitude(),
+                    second.getLongitude()
+                );
+                maxDistance = maxDistance.max(distance);
+            }
+        }
+        return maxDistance;
+    }
+
+    private BigDecimal calculateMaxRiskScore(List<Report> reports) {
+        return reports.stream()
+            .map(Report::getRiskScore)
+            .max(BigDecimal::compareTo)
+            .orElse(BigDecimal.ZERO);
+    }
+
+    private LocalDateTime calculateRecentReportedAt(List<Report> reports) {
+        return reports.stream()
+            .map(this::reportReportedAt)
+            .max(LocalDateTime::compareTo)
+            .orElse(LocalDateTime.now());
+    }
+
+    private LocalDateTime reportReportedAt(Report report) {
+        return report.getCreatedAt() == null ? report.getOccurredAt() : report.getCreatedAt();
+    }
+
     private Coordinate calculateGroupCenter(ReportCreateRequest request, List<Report> groupReports) {
         BigDecimal latitudeSum = request.latitude();
         BigDecimal longitudeSum = request.longitude();
@@ -595,14 +683,19 @@ public class ReportService {
         Report report = reportRepository.findByIdAndUser_Id(reportId, userId)
             .orElseThrow(() -> new CustomException("제보를 찾을 수 없습니다.", ErrorCode.NOT_FOUND));
         validateUpdatableReport(report);
+        validateUnchangedCategory(report, request.categoryId());
 
-        ReportCategory category = getReportCategory(request.categoryId());
         report.update(
             request.title(),
             convertContents(request.contents()),
-            request.visibility(),
-            category
+            request.visibility()
         );
+        if (Boolean.TRUE.equals(report.getIsRepresentative())) {
+            report.getIssueGroup().syncRepresentativeReport(
+                report.getTitle(),
+                resolveIssueGroupContent(parseReportContents(report))
+            );
+        }
         reportRepository.flush();
 
         return MyReportUpdateResponse.from(report, objectMapper);
@@ -616,18 +709,28 @@ public class ReportService {
             .orElseThrow(() -> new CustomException("?쒕낫瑜?李얠쓣 ???놁뒿?덈떎.", ErrorCode.NOT_FOUND));
         List<ReportImage> reportImages = reportImageRepository.findByReport_IdOrderBySortOrderAsc(reportId);
         IssueGroup issueGroup = report.getIssueGroup();
+        List<Report> remainingReports = reportRepository.findByIssueGroup_IdAndIsDeletedFalse(issueGroup.getId())
+            .stream()
+            .filter(groupReport -> !groupReport.getId().equals(report.getId()))
+            .toList();
 
-        issueGroup.decreaseReportCount();
+        if (!remainingReports.isEmpty()) {
+            refreshIssueGroupByReports(issueGroup, remainingReports);
+        }
         MyReportDeleteResponse response = MyReportDeleteResponse.from(
             report,
             reportImages,
-            issueGroup,
+            remainingReports.isEmpty() ? null : issueGroup,
             objectMapper
         );
 
         // TODO: R2 오브젝트 삭제 정책이 정해지면 report_images와 함께 실제 이미지도 정리한다.
         reportRepository.delete(report);
         reportRepository.flush();
+        if (remainingReports.isEmpty()) {
+            issueGroupRepository.delete(issueGroup);
+            issueGroupRepository.flush();
+        }
 
         return response;
     }
@@ -771,6 +874,15 @@ public class ReportService {
         }
     }
 
+    private void validateUnchangedCategory(Report report, Long categoryId) {
+        if (categoryId == null) {
+            return;
+        }
+        if (!report.getCategory().getId().equals(categoryId)) {
+            throw new CustomException("카테고리 변경은 지원하지 않습니다.", ErrorCode.INVALID_PARAMETER);
+        }
+    }
+
     private ReportCategory getReportCategory(Long categoryId) {
         if (categoryId == null) {
             return null;
@@ -801,6 +913,14 @@ public class ReportService {
 
         try {
             return objectMapper.writeValueAsString(contents);
+        } catch (JsonProcessingException e) {
+            throw new CustomException("제보 본문 형식이 올바르지 않습니다.", ErrorCode.INVALID_FORMAT);
+        }
+    }
+
+    private JsonNode parseReportContents(Report report) {
+        try {
+            return objectMapper.readTree(report.getContents());
         } catch (JsonProcessingException e) {
             throw new CustomException("제보 본문 형식이 올바르지 않습니다.", ErrorCode.INVALID_FORMAT);
         }

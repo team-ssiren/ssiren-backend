@@ -52,6 +52,9 @@ public interface ReportRepository extends JpaRepository<Report, Long>, JpaSpecif
     @EntityGraph(attributePaths = {"issueGroup"})
     List<Report> findByIssueGroup_IdInAndIsDeletedFalse(Collection<Long> issueGroupIds);
 
+    @EntityGraph(attributePaths = {"issueGroup"})
+    List<Report> findByIssueGroup_IdAndIsDeletedFalse(Long issueGroupId);
+
     @Query(
         value = """
             select
