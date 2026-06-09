@@ -114,6 +114,25 @@ class ChatbotServiceTest {
     }
 
     @Test
+    void saveChatbotSessionReturnsCreatedSession() {
+        LocalDateTime createdAt = LocalDateTime.of(2026, 6, 9, 12, 30);
+        when(userRepository.findById(1L))
+            .thenReturn(Optional.of(user));
+        when(chatbotSessionRepository.save(ArgumentMatchers.any()))
+            .thenReturn(chatbotSession);
+        when(chatbotSession.getId()).thenReturn(1L);
+        when(chatbotSession.getTitle()).thenReturn("새 대화");
+        when(chatbotSession.getCreatedAt()).thenReturn(createdAt);
+
+        ChatbotSessionResponse response = chatbotService.saveChatbotSession(1L);
+
+        assertThat(response.id()).isEqualTo(1L);
+        assertThat(response.title()).isEqualTo("새 대화");
+        assertThat(response.createdAt()).isEqualTo(createdAt);
+        verify(chatbotSessionRepository).save(ArgumentMatchers.any());
+    }
+
+    @Test
     void getChatbotMessagesReturnsCursorResponse() {
         Pageable pageable = PageRequest.of(0, 3);
         LocalDateTime createdAt = LocalDateTime.of(2026, 6, 9, 12, 35);

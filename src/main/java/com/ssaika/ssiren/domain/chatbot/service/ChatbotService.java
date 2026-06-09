@@ -26,6 +26,7 @@ import com.ssaika.ssiren.domain.report.entity.ReportCategory;
 import com.ssaika.ssiren.domain.report.repository.ReportCategoryRepository;
 import com.ssaika.ssiren.domain.report.repository.ReportRepository;
 import com.ssaika.ssiren.domain.report.repository.ReportSpecification;
+import com.ssaika.ssiren.domain.user.entity.User;
 import com.ssaika.ssiren.domain.user.repository.UserRepository;
 import com.ssaika.ssiren.global.enums.ChatbotSenderType;
 import com.ssaika.ssiren.global.enums.ReportVisibility;
@@ -71,6 +72,20 @@ public class ChatbotService {
 
         return chatbotSessionRepository.findAllByUser_Id(userId, pageable)
             .map(ChatbotSessionResponse::from);
+    }
+
+    @Transactional
+    public ChatbotSessionResponse saveChatbotSession(Long userId) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND.getMessage(),
+                ErrorCode.USER_NOT_FOUND));
+        ChatbotSession session = chatbotSessionRepository.save(ChatbotSession.create(
+            user,
+            NEW_CHAT_TITLE,
+            LocalDateTime.now()
+        ));
+
+        return ChatbotSessionResponse.from(session);
     }
 
     public ChatbotMessageCursorResponse getChatbotMessages(Long userId, Long sessionId, Long cursor,

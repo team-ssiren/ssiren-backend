@@ -55,6 +55,14 @@ public class ChatbotController {
         return ResponseEntity.ok(BaseResponse.success("채팅 내역 조회 성공", response));
     }
 
+    @PostMapping("/sessions")
+    public ResponseEntity<BaseResponse<ChatbotSessionResponse>> saveChatbotSession() {
+        ChatbotSessionResponse response = chatbotService.saveChatbotSession(TEST_USER_ID);
+
+        return ResponseEntity.status(HttpStatus.CREATED)
+            .body(BaseResponse.success(HttpStatus.CREATED, "챗봇 세션 생성 성공", response));
+    }
+
     @PostMapping("/sessions/{sessionId}")
     public ResponseEntity<BaseResponse<ChatbotMessageSendResponse>> saveChatbotMessage(
         @PathVariable Long sessionId,
