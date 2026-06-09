@@ -55,6 +55,11 @@ public enum ErrorCode {
     USER_ROLE_TYPE_MISMATCH(HttpStatus.BAD_REQUEST, "유효하지 않은 사용자 역할입니다."),
 
     // ============================================================
+    // * CHATBOT
+    // ============================================================
+    CHATBOT_SESSION_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 세션입니다."),
+    CHATBOT_AI_RESPONSE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "현재 챗봇 응답을 생성할 수 없습니다."),
+    CHATBOT_REPORT_CONTEXT_INVALID(HttpStatus.INTERNAL_SERVER_ERROR, "챗봇 응답 생성을 위한 제보 데이터가 올바르지 않습니다.");
     // * AI
     // ============================================================
     AI_SERVER_CONNECTION_FAILED(HttpStatus.BAD_GATEWAY, "AI 서버에 연결할 수 없습니다."),

@@ -41,4 +41,16 @@ public class ChatbotSession {
     @JoinColumn(name = "user_id", nullable = false)
     @OnDelete(action = OnDeleteAction.CASCADE)
     private User user;
+
+    public static ChatbotSession create(User user, String title, LocalDateTime createdAt) {
+        return ChatbotSession.builder()
+            .user(user)
+            .title(title)
+            .createdAt(createdAt)
+            .build();
+    }
+
+    public void updateTitle(String title) {
+        this.title = title;
+    }
 }

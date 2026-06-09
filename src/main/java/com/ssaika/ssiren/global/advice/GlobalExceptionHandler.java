@@ -6,7 +6,9 @@ import com.ssaika.ssiren.global.exception.ErrorCode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageConversionException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -72,6 +74,30 @@ public class GlobalExceptionHandler {
         log.error("JSON Parse Error: {}", e.getMessage());
 
         ErrorCode errorCode = ErrorCode.INVALID_FORMAT;
+
+        return ResponseEntity
+            .status(errorCode.getHttpStatus())
+            .body(BaseResponse.fail(errorCode));
+    }
+
+    @ExceptionHandler(HttpMessageConversionException.class)
+    public ResponseEntity<BaseResponse<?>> handleHttpMessageConversionException(
+        HttpMessageConversionException e) {
+        log.error("HTTP Message Conversion Error: {}", e.getMessage());
+
+        ErrorCode errorCode = ErrorCode.INVALID_FORMAT;
+
+        return ResponseEntity
+            .status(errorCode.getHttpStatus())
+            .body(BaseResponse.fail(errorCode));
+    }
+
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<BaseResponse<?>> handleHttpMediaTypeNotSupportedException(
+        HttpMediaTypeNotSupportedException e) {
+        log.error("Unsupported Media Type: {}", e.getMessage());
+
+        ErrorCode errorCode = ErrorCode.BAD_REQUEST;
 
         return ResponseEntity
             .status(errorCode.getHttpStatus())
