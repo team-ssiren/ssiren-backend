@@ -45,9 +45,15 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/issues/**").authenticated()
                 .requestMatchers("/api/v1/chatbots").authenticated()
                 .requestMatchers("/api/v1/chatbots/**").authenticated()
+                // TODO: 추후 리포트 관련 api 설정 추가하며 반영 고려
+                .requestMatchers("/api/v1/reports/drafts").authenticated()
+                .requestMatchers("/api/v1/reports").authenticated()
+                // TODO: 로그인 연동 후 authenticated()로 복구
+                // .requestMatchers("/api/v1/reports/me").authenticated()
                 .requestMatchers("/api/v1/users/me/**").authenticated()
                 .requestMatchers("/api/v1/users/me").authenticated()
                 .requestMatchers("/api/v1/notifications/tokens").authenticated()
+                .requestMatchers("/api/v1/admin/**").authenticated()
                 .anyRequest().permitAll())
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 

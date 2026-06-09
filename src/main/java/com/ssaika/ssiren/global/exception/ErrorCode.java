@@ -60,6 +60,16 @@ public enum ErrorCode {
     CHATBOT_SESSION_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 세션입니다."),
     CHATBOT_AI_RESPONSE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "현재 챗봇 응답을 생성할 수 없습니다."),
     CHATBOT_REPORT_CONTEXT_INVALID(HttpStatus.INTERNAL_SERVER_ERROR, "챗봇 응답 생성을 위한 제보 데이터가 올바르지 않습니다.");
+    // * AI
+    // ============================================================
+    AI_SERVER_CONNECTION_FAILED(HttpStatus.BAD_GATEWAY, "AI 서버에 연결할 수 없습니다."),
+    AI_SERVER_TIMEOUT(HttpStatus.GATEWAY_TIMEOUT, "AI 서버 응답 시간이 초과되었습니다."),
+    AI_SERVER_RESPONSE_ERROR(HttpStatus.BAD_GATEWAY, "AI 서버 응답이 올바르지 않습니다."),
+
+    // ============================================================
+    // * REPORT
+    // ============================================================
+    REPORT_IMAGE_UPLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "제보 이미지 업로드에 실패했습니다.");
 
 
 

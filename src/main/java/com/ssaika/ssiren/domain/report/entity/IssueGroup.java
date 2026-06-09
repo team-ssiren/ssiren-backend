@@ -65,10 +65,76 @@ public class IssueGroup extends BaseTime {
     @Column(name = "risk_score", nullable = false, precision = 5, scale = 2)
     private BigDecimal riskScore;
 
+    @Column(name = "group_diameter_meters", nullable = false, precision = 10, scale = 2)
+    private BigDecimal groupDiameterMeters;
+
+    public static IssueGroup create(
+        String title,
+        String content,
+        BigDecimal groupLatitude,
+        BigDecimal groupLongitude,
+        LocalDateTime recentReportedAt,
+        BigDecimal riskScore) {
+        return IssueGroup.builder()
+            .title(title)
+            .content(content)
+            .groupLatitude(groupLatitude)
+            .groupLongitude(groupLongitude)
+            .reportCount(1)
+            .yesCount(0)
+            .noCount(0)
+            .unknownCount(0)
+            .recentReportedAt(recentReportedAt)
+            .status(IssueGroupStatus.ACTIVE)
+            .riskScore(riskScore)
+            .groupDiameterMeters(BigDecimal.ZERO)
+            .build();
+    }
+
     public void decreaseReportCount() {
         if (reportCount > 0) {
             reportCount--;
         }
+    }
+
+    public void mergeReport(
+        BigDecimal groupLatitude,
+        BigDecimal groupLongitude,
+        BigDecimal groupDiameterMeters,
+        BigDecimal riskScore,
+        LocalDateTime recentReportedAt) {
+        this.reportCount++;
+        this.groupLatitude = groupLatitude;
+        this.groupLongitude = groupLongitude;
+        this.groupDiameterMeters = groupDiameterMeters;
+        if (riskScore.compareTo(this.riskScore) > 0) {
+            this.riskScore = riskScore;
+        }
+        this.recentReportedAt = recentReportedAt;
+    }
+
+    public void refreshStats(
+        String title,
+        String content,
+        Integer reportCount,
+        BigDecimal groupLatitude,
+        BigDecimal groupLongitude,
+        BigDecimal groupDiameterMeters,
+        BigDecimal riskScore,
+        LocalDateTime recentReportedAt) {
+        this.title = title;
+        this.content = content;
+        this.reportCount = reportCount;
+        this.groupLatitude = groupLatitude;
+        this.groupLongitude = groupLongitude;
+        this.groupDiameterMeters = groupDiameterMeters;
+        this.riskScore = riskScore;
+        this.recentReportedAt = recentReportedAt;
+    }
+
+    public void syncRepresentativeReport(String title, String content) {
+        this.title = title;
+        this.content = content;
     }
 
     public void applyReaction(

@@ -1,25 +1,46 @@
 package com.ssaika.ssiren.domain.report.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.ssaika.ssiren.domain.report.dto.response.MyReportDetailResponse;
-import com.ssaika.ssiren.domain.report.dto.response.MyReportResponse;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.ssaika.ssiren.domain.agency.entity.Department;
+import com.ssaika.ssiren.domain.agency.repository.DepartmentRepository;
+import com.ssaika.ssiren.domain.report.address.AddressResolver;
+import com.ssaika.ssiren.domain.report.address.AddressSnapshot;
+import com.ssaika.ssiren.domain.report.client.ReportAiClient;
+import com.ssaika.ssiren.domain.report.client.dto.request.ReportAiAnalyzeRequest;
+import com.ssaika.ssiren.domain.report.client.dto.response.ReportAiAnalyzeResponse;
 import com.ssaika.ssiren.domain.report.dto.request.MyReportUpdateRequest;
+import com.ssaika.ssiren.domain.report.dto.request.ReportCreateRequest;
+import com.ssaika.ssiren.domain.report.dto.request.ReportDraftRequest;
 import com.ssaika.ssiren.domain.report.dto.request.ReportReactionRequest;
 import com.ssaika.ssiren.domain.report.dto.response.IssueDetailResponse;
 import com.ssaika.ssiren.domain.report.dto.response.IssueResponse;
 import com.ssaika.ssiren.domain.report.dto.response.MyReportDeleteResponse;
+import com.ssaika.ssiren.domain.report.dto.response.MyReportDetailResponse;
+import com.ssaika.ssiren.domain.report.dto.response.MyReportResponse;
 import com.ssaika.ssiren.domain.report.dto.response.MyReportUpdateResponse;
+import com.ssaika.ssiren.domain.report.dto.response.ReportAgencyTypeResponse;
+import com.ssaika.ssiren.domain.report.dto.response.ReportAiAnalysisResponse;
+import com.ssaika.ssiren.domain.report.dto.response.ReportCategoryResponse;
+import com.ssaika.ssiren.domain.report.dto.response.ReportCreateResponse;
+import com.ssaika.ssiren.domain.report.dto.response.ReportDepartmentResponse;
+import com.ssaika.ssiren.domain.report.dto.response.ReportDraftCreateResponse;
+import com.ssaika.ssiren.domain.report.dto.response.ReportDraftResponse;
+import com.ssaika.ssiren.domain.report.dto.response.ReportListResponse;
 import com.ssaika.ssiren.domain.report.dto.response.ReportReactionResponse;
 import com.ssaika.ssiren.domain.report.entity.IssueGroup;
 import com.ssaika.ssiren.domain.report.entity.Report;
 import com.ssaika.ssiren.domain.report.entity.ReportCategory;
+import com.ssaika.ssiren.domain.report.entity.ReportCategoryMergeRule;
 import com.ssaika.ssiren.domain.report.entity.ReportImage;
 import com.ssaika.ssiren.domain.report.entity.ReportReactionLog;
 import com.ssaika.ssiren.domain.report.entity.ReportStatusHistory;
+import com.ssaika.ssiren.domain.report.repository.DuplicateReportCandidate;
 import com.ssaika.ssiren.domain.report.repository.ReportCategoryRepository;
 import com.ssaika.ssiren.domain.report.repository.IssueGroupRepository;
+import com.ssaika.ssiren.domain.report.repository.ReportCategoryMergeRuleRepository;
 import com.ssaika.ssiren.domain.report.repository.ReportImageRepository;
 import com.ssaika.ssiren.domain.report.repository.ReportReactionLogRepository;
 import com.ssaika.ssiren.domain.report.repository.ReportRepository;
@@ -31,16 +52,24 @@ import com.ssaika.ssiren.global.enums.IssueGroupStatus;
 import com.ssaika.ssiren.global.enums.ReportStatus;
 import com.ssaika.ssiren.global.enums.ReportVisibility;
 import com.ssaika.ssiren.global.enums.ReportReactionType;
-import com.ssaika.ssiren.domain.report.dto.response.ReportListResponse;
 import com.ssaika.ssiren.global.exception.CustomException;
 import com.ssaika.ssiren.global.exception.ErrorCode;
+import com.ssaika.ssiren.global.util.ReportImageStorage;
+import com.ssaika.ssiren.global.util.ReportImageStorage.UploadedReportImage;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeParseException;
+import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -50,6 +79,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 @Slf4j
 @Service
@@ -57,14 +87,407 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class ReportService {
 
+    private static final BigDecimal MIN_LATITUDE = BigDecimal.valueOf(-90);
+    private static final BigDecimal MAX_LATITUDE = BigDecimal.valueOf(90);
+    private static final BigDecimal MIN_LONGITUDE = BigDecimal.valueOf(-180);
+    private static final BigDecimal MAX_LONGITUDE = BigDecimal.valueOf(180);
+    private static final int MAX_REPORT_DRAFT_IMAGE_COUNT = 5;
+    private static final long MAX_REPORT_DRAFT_IMAGE_SIZE = 50 * 1024 * 1024;
+    private static final int REPORT_EMBEDDING_DIMENSION = 1024;
+    private static final double EARTH_RADIUS_METERS = 6_371_000;
+    private static final String ADDRESS_NOT_RESOLVED = "주소 확인 필요";
+
     private final ReportRepository reportRepository;
     private final IssueGroupRepository issueGroupRepository;
     private final ReportCategoryRepository reportCategoryRepository;
+    private final ReportCategoryMergeRuleRepository reportCategoryMergeRuleRepository;
     private final ReportImageRepository reportImageRepository;
     private final ReportStatusHistoryRepository reportStatusHistoryRepository;
     private final ReportReactionLogRepository reportReactionLogRepository;
     private final UserRepository userRepository;
+    private final DepartmentRepository departmentRepository;
     private final ObjectMapper objectMapper;
+    private final ReportAiClient reportAiClient;
+    private final AddressResolver addressResolver;
+    private final ReportImageStorage reportImageStorage;
+
+    public ReportDraftCreateResponse createReportDraft(Long userId, ReportDraftRequest request) {
+        validateAuthenticatedUser(userId);
+        validateReportDraftRequest(request);
+        log.info(
+            "Create report draft. userId={}, latitude={}, longitude={}, imageCount={}",
+            userId,
+            request.latitude(),
+            request.longitude(),
+            request.images() == null ? 0 : request.images().size()
+        );
+
+        userRepository.findById(userId)
+            .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND.getMessage(), ErrorCode.USER_NOT_FOUND));
+
+        LocalDateTime occurredAt = request.occurredAt() == null ? LocalDateTime.now() : request.occurredAt();
+        AddressSnapshot address = addressResolver.resolve(request.latitude(), request.longitude());
+        ReportAiAnalyzeResponse aiResponse = reportAiClient.analyzeReport(new ReportAiAnalyzeRequest(
+            request.content(),
+            request.latitude(),
+            request.longitude(),
+            occurredAt,
+            address.roadAddress(),
+            address.sido(),
+            address.sigungu(),
+            address.eupmyeondong(),
+            request.images()
+        ));
+
+        ReportCategory category = resolveReportCategory(aiResponse);
+
+        return new ReportDraftCreateResponse(
+            createReportDraftResponse(
+                userId,
+                request,
+                occurredAt,
+                address,
+                aiResponse,
+                category
+            ),
+            ReportCategoryResponse.from(category),
+            category.getParentCategory() == null ? null : ReportCategoryResponse.from(category.getParentCategory()),
+            ReportDepartmentResponse.from(category.getDepartment()),
+            ReportAgencyTypeResponse.from(category.getDepartment().getAgencyType()),
+            ReportAiAnalysisResponse.from(aiResponse.analysis())
+        );
+    }
+
+    @Transactional
+    public ReportCreateResponse createReport(
+        Long userId,
+        ReportCreateRequest request,
+        List<MultipartFile> images) {
+        validateAuthenticatedUser(userId);
+        validateReportCreateRequest(request, images);
+        log.info(
+            "Create report. userId={}, categoryId={}, departmentId={}, latitude={}, longitude={}, imageCount={}",
+            userId,
+            request.categoryId(),
+            request.departmentId(),
+            request.latitude(),
+            request.longitude(),
+            images == null ? 0 : images.size()
+        );
+
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND.getMessage(), ErrorCode.USER_NOT_FOUND));
+        ReportCategory category = getReportCategory(request.categoryId());
+        Department department = getDepartment(request.departmentId());
+        validateCategoryDepartment(category, department);
+
+        IssueGroup issueGroup = resolveIssueGroupForCreate(request);
+
+        Report report = reportRepository.saveAndFlush(Report.create(
+            request.title(),
+            convertContents(request.contents()),
+            request.latitude(),
+            request.longitude(),
+            request.roadAddress(),
+            request.jibunAddress(),
+            request.sido(),
+            request.sigungu(),
+            request.eupmyeondong(),
+            request.occurredAt(),
+            request.riskScore(),
+            request.visibility(),
+            toPgVector(request.embedding()),
+            issueGroup.getReportCount() == 1,
+            user,
+            category,
+            issueGroup,
+            department
+        ));
+
+        List<ReportImage> reportImages = uploadAndSaveReportImages(userId, report, images);
+
+        return ReportCreateResponse.from(report, reportImages, issueGroup, objectMapper);
+    }
+
+    public List<DuplicateReportCandidate> findDuplicateReportCandidates(ReportCreateRequest request) {
+        validateReportCreateRequest(request, null);
+        if (request.embedding() == null || request.embedding().isEmpty()) {
+            return List.of();
+        }
+
+        ReportCategoryMergeRule mergeRule = reportCategoryMergeRuleRepository.findByCategory_Id(request.categoryId())
+            .orElseThrow(() -> new CustomException("카테고리 병합 기준을 찾을 수 없습니다.", ErrorCode.NOT_FOUND));
+
+        return reportRepository.findDuplicateCandidates(
+            request.categoryId(),
+            request.departmentId(),
+            request.latitude(),
+            request.longitude(),
+            toPgVector(request.embedding()),
+            mergeRule.getLinkRadiusMeters(),
+            mergeRule.getMinEmbeddingSimilarity()
+        );
+    }
+
+    private IssueGroup resolveIssueGroupForCreate(ReportCreateRequest request) {
+        String embedding = toPgVector(request.embedding());
+        if (embedding == null) {
+            return createNewIssueGroup(request);
+        }
+
+        ReportCategoryMergeRule mergeRule = reportCategoryMergeRuleRepository.findByCategory_Id(request.categoryId())
+            .orElseThrow(() -> new CustomException("카테고리 병합 기준을 찾을 수 없습니다.", ErrorCode.NOT_FOUND));
+        List<DuplicateReportCandidate> candidates = reportRepository.findDuplicateCandidates(
+            request.categoryId(),
+            request.departmentId(),
+            request.latitude(),
+            request.longitude(),
+            embedding,
+            mergeRule.getLinkRadiusMeters(),
+            mergeRule.getMinEmbeddingSimilarity()
+        );
+
+        return selectMergeTarget(request, mergeRule, candidates)
+            .map(target -> mergeIssueGroup(request, target))
+            .orElseGet(() -> createNewIssueGroup(request));
+    }
+
+    private java.util.Optional<MergeTarget> selectMergeTarget(
+        ReportCreateRequest request,
+        ReportCategoryMergeRule mergeRule,
+        List<DuplicateReportCandidate> candidates) {
+        if (candidates.isEmpty()) {
+            return java.util.Optional.empty();
+        }
+
+        Map<Long, IssueGroup> issueGroups = issueGroupRepository.findAllById(candidateIssueGroupIds(candidates))
+            .stream()
+            .collect(Collectors.toMap(IssueGroup::getId, Function.identity()));
+        Map<Long, List<Report>> reportsByIssueGroup = reportRepository
+            .findByIssueGroup_IdInAndIsDeletedFalse(issueGroups.keySet())
+            .stream()
+            .collect(Collectors.groupingBy(report -> report.getIssueGroup().getId()));
+
+        return candidates.stream()
+            .map(candidate -> createMergeTarget(request, mergeRule, candidate, issueGroups, reportsByIssueGroup))
+            .filter(Objects::nonNull)
+            .filter(target -> target.score().compareTo(mergeRule.getAutoMergeThreshold()) >= 0)
+            .max(Comparator.comparing(MergeTarget::score));
+    }
+
+    private Set<Long> candidateIssueGroupIds(List<DuplicateReportCandidate> candidates) {
+        return candidates.stream()
+            .map(DuplicateReportCandidate::getCandidateIssueGroupId)
+            .filter(Objects::nonNull)
+            .collect(Collectors.toCollection(HashSet::new));
+    }
+
+    private MergeTarget createMergeTarget(
+        ReportCreateRequest request,
+        ReportCategoryMergeRule mergeRule,
+        DuplicateReportCandidate candidate,
+        Map<Long, IssueGroup> issueGroups,
+        Map<Long, List<Report>> reportsByIssueGroup) {
+        IssueGroup issueGroup = issueGroups.get(candidate.getCandidateIssueGroupId());
+        if (issueGroup == null) {
+            return null;
+        }
+
+        List<Report> groupReports = reportsByIssueGroup.getOrDefault(issueGroup.getId(), List.of());
+        BigDecimal newGroupDiameter = calculateNewGroupDiameter(request, issueGroup, groupReports);
+        BigDecimal maxGroupDiameter = BigDecimal.valueOf(mergeRule.getMaxGroupDiameterMeters());
+        if (newGroupDiameter.compareTo(maxGroupDiameter) > 0) {
+            return null;
+        }
+
+        BigDecimal score = calculateMergeScore(candidate, mergeRule, newGroupDiameter);
+        return new MergeTarget(issueGroup, groupReports, newGroupDiameter, score);
+    }
+
+    private IssueGroup mergeIssueGroup(ReportCreateRequest request, MergeTarget target) {
+        Coordinate center = calculateGroupCenter(request, target.groupReports());
+        target.issueGroup().mergeReport(
+            center.latitude(),
+            center.longitude(),
+            target.newGroupDiameter(),
+            request.riskScore(),
+            LocalDateTime.now()
+        );
+        return target.issueGroup();
+    }
+
+    private IssueGroup createNewIssueGroup(ReportCreateRequest request) {
+        return issueGroupRepository.save(IssueGroup.create(
+            request.title(),
+            resolveIssueGroupContent(request.contents()),
+            request.latitude(),
+            request.longitude(),
+            LocalDateTime.now(),
+            request.riskScore()
+        ));
+    }
+
+    private BigDecimal calculateNewGroupDiameter(
+        ReportCreateRequest request,
+        IssueGroup issueGroup,
+        List<Report> groupReports) {
+        BigDecimal currentDiameter = issueGroup.getGroupDiameterMeters() == null
+            ? BigDecimal.ZERO
+            : issueGroup.getGroupDiameterMeters();
+        BigDecimal maxDistanceFromNewReport = groupReports.stream()
+            .map(report -> calculateDistanceMeters(
+                request.latitude(),
+                request.longitude(),
+                report.getLatitude(),
+                report.getLongitude()
+            ))
+            .max(BigDecimal::compareTo)
+            .orElse(BigDecimal.ZERO);
+
+        return currentDiameter.max(maxDistanceFromNewReport);
+    }
+
+    private BigDecimal calculateMergeScore(
+        DuplicateReportCandidate candidate,
+        ReportCategoryMergeRule mergeRule,
+        BigDecimal newGroupDiameter) {
+        double distance = safeDouble(candidate.getDistanceMeters());
+        double similarity = safeDouble(candidate.getEmbeddingSimilarity());
+        double linkRadius = mergeRule.getLinkRadiusMeters();
+        double maxDiameter = mergeRule.getMaxGroupDiameterMeters();
+        double diameter = safeDouble(newGroupDiameter);
+
+        double distanceScore = 30.0 * Math.max(0.0, 1.0 - distance / linkRadius);
+        double embeddingScore = 50.0 * Math.max(0.0, Math.min(1.0, similarity));
+        double diameterScore = 20.0 * Math.max(0.0, 1.0 - diameter / maxDiameter);
+
+        return BigDecimal.valueOf(distanceScore + embeddingScore + diameterScore)
+            .setScale(2, RoundingMode.HALF_UP);
+    }
+
+    private BigDecimal calculateDistanceMeters(
+        BigDecimal latitude1,
+        BigDecimal longitude1,
+        BigDecimal latitude2,
+        BigDecimal longitude2) {
+        double lat1 = Math.toRadians(latitude1.doubleValue());
+        double lat2 = Math.toRadians(latitude2.doubleValue());
+        double deltaLat = lat2 - lat1;
+        double deltaLon = Math.toRadians(longitude2.doubleValue() - longitude1.doubleValue());
+
+        double a = Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2)
+            + Math.cos(lat1) * Math.cos(lat2)
+            * Math.sin(deltaLon / 2) * Math.sin(deltaLon / 2);
+        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return BigDecimal.valueOf(EARTH_RADIUS_METERS * c).setScale(2, RoundingMode.HALF_UP);
+    }
+
+    private void refreshIssueGroupByReports(IssueGroup issueGroup, List<Report> reports) {
+        Report representativeReport = normalizeRepresentativeReport(reports);
+        Coordinate center = calculateGroupCenter(reports);
+        issueGroup.refreshStats(
+            representativeReport.getTitle(),
+            resolveIssueGroupContent(parseReportContents(representativeReport)),
+            reports.size(),
+            center.latitude(),
+            center.longitude(),
+            calculateGroupDiameter(reports),
+            calculateMaxRiskScore(reports),
+            calculateRecentReportedAt(reports)
+        );
+    }
+
+    private Report normalizeRepresentativeReport(List<Report> reports) {
+        Report representativeReport = reports.stream()
+            .filter(report -> Boolean.TRUE.equals(report.getIsRepresentative()))
+            .max(Comparator.comparing(this::reportReportedAt))
+            .orElseGet(() -> reports.stream()
+                .max(Comparator.comparing(this::reportReportedAt))
+                .orElseThrow(() -> new CustomException("이슈 그룹 대표 제보를 찾을 수 없습니다.", ErrorCode.NOT_FOUND)));
+
+        for (Report report : reports) {
+            if (report.getId().equals(representativeReport.getId())) {
+                report.markRepresentative();
+                continue;
+            }
+            report.unmarkRepresentative();
+        }
+        return representativeReport;
+    }
+
+    private Coordinate calculateGroupCenter(List<Report> reports) {
+        BigDecimal latitudeSum = BigDecimal.ZERO;
+        BigDecimal longitudeSum = BigDecimal.ZERO;
+        for (Report report : reports) {
+            latitudeSum = latitudeSum.add(report.getLatitude());
+            longitudeSum = longitudeSum.add(report.getLongitude());
+        }
+
+        BigDecimal count = BigDecimal.valueOf(reports.size());
+        return new Coordinate(
+            latitudeSum.divide(count, 7, RoundingMode.HALF_UP),
+            longitudeSum.divide(count, 7, RoundingMode.HALF_UP)
+        );
+    }
+
+    private BigDecimal calculateGroupDiameter(List<Report> reports) {
+        if (reports.size() <= 1) {
+            return BigDecimal.ZERO;
+        }
+
+        BigDecimal maxDistance = BigDecimal.ZERO;
+        for (int i = 0; i < reports.size(); i++) {
+            for (int j = i + 1; j < reports.size(); j++) {
+                Report first = reports.get(i);
+                Report second = reports.get(j);
+                BigDecimal distance = calculateDistanceMeters(
+                    first.getLatitude(),
+                    first.getLongitude(),
+                    second.getLatitude(),
+                    second.getLongitude()
+                );
+                maxDistance = maxDistance.max(distance);
+            }
+        }
+        return maxDistance;
+    }
+
+    private BigDecimal calculateMaxRiskScore(List<Report> reports) {
+        return reports.stream()
+            .map(Report::getRiskScore)
+            .max(BigDecimal::compareTo)
+            .orElse(BigDecimal.ZERO);
+    }
+
+    private LocalDateTime calculateRecentReportedAt(List<Report> reports) {
+        return reports.stream()
+            .map(this::reportReportedAt)
+            .max(LocalDateTime::compareTo)
+            .orElse(LocalDateTime.now());
+    }
+
+    private LocalDateTime reportReportedAt(Report report) {
+        return report.getCreatedAt() == null ? report.getOccurredAt() : report.getCreatedAt();
+    }
+
+    private Coordinate calculateGroupCenter(ReportCreateRequest request, List<Report> groupReports) {
+        BigDecimal latitudeSum = request.latitude();
+        BigDecimal longitudeSum = request.longitude();
+        for (Report report : groupReports) {
+            latitudeSum = latitudeSum.add(report.getLatitude());
+            longitudeSum = longitudeSum.add(report.getLongitude());
+        }
+
+        BigDecimal count = BigDecimal.valueOf(groupReports.size() + 1L);
+        return new Coordinate(
+            latitudeSum.divide(count, 7, RoundingMode.HALF_UP),
+            longitudeSum.divide(count, 7, RoundingMode.HALF_UP)
+        );
+    }
+
+    private double safeDouble(BigDecimal value) {
+        return value == null ? 0.0 : value.doubleValue();
+    }
 
     public List<IssueResponse> getIssues(
         BigDecimal latitude,
@@ -260,14 +683,19 @@ public class ReportService {
         Report report = reportRepository.findByIdAndUser_Id(reportId, userId)
             .orElseThrow(() -> new CustomException("제보를 찾을 수 없습니다.", ErrorCode.NOT_FOUND));
         validateUpdatableReport(report);
+        validateUnchangedCategory(report, request.categoryId());
 
-        ReportCategory category = getReportCategory(request.categoryId());
         report.update(
             request.title(),
             convertContents(request.contents()),
-            request.visibility(),
-            category
+            request.visibility()
         );
+        if (Boolean.TRUE.equals(report.getIsRepresentative())) {
+            report.getIssueGroup().syncRepresentativeReport(
+                report.getTitle(),
+                resolveIssueGroupContent(parseReportContents(report))
+            );
+        }
         reportRepository.flush();
 
         return MyReportUpdateResponse.from(report, objectMapper);
@@ -281,17 +709,28 @@ public class ReportService {
             .orElseThrow(() -> new CustomException("?쒕낫瑜?李얠쓣 ???놁뒿?덈떎.", ErrorCode.NOT_FOUND));
         List<ReportImage> reportImages = reportImageRepository.findByReport_IdOrderBySortOrderAsc(reportId);
         IssueGroup issueGroup = report.getIssueGroup();
+        List<Report> remainingReports = reportRepository.findByIssueGroup_IdAndIsDeletedFalse(issueGroup.getId())
+            .stream()
+            .filter(groupReport -> !groupReport.getId().equals(report.getId()))
+            .toList();
 
-        issueGroup.decreaseReportCount();
+        if (!remainingReports.isEmpty()) {
+            refreshIssueGroupByReports(issueGroup, remainingReports);
+        }
         MyReportDeleteResponse response = MyReportDeleteResponse.from(
             report,
             reportImages,
-            issueGroup,
+            remainingReports.isEmpty() ? null : issueGroup,
             objectMapper
         );
 
+        // TODO: R2 오브젝트 삭제 정책이 정해지면 report_images와 함께 실제 이미지도 정리한다.
         reportRepository.delete(report);
         reportRepository.flush();
+        if (remainingReports.isEmpty()) {
+            issueGroupRepository.delete(issueGroup);
+            issueGroupRepository.flush();
+        }
 
         return response;
     }
@@ -338,6 +777,15 @@ public class ReportService {
         reportReactionLogRepository.flush();
 
         return ReportReactionResponse.from(reactionLog, report, objectMapper);
+    }
+
+    public List<ReportCategoryResponse> getReportCategories() {
+        log.info("Get report categories.");
+
+        return reportCategoryRepository.findAllByOrderByIdAsc()
+                .stream()
+                .map(ReportCategoryResponse::from)
+                .toList();
     }
 
     private LocalDateTime parseFromDateTime(String value) {
@@ -426,6 +874,15 @@ public class ReportService {
         }
     }
 
+    private void validateUnchangedCategory(Report report, Long categoryId) {
+        if (categoryId == null) {
+            return;
+        }
+        if (!report.getCategory().getId().equals(categoryId)) {
+            throw new CustomException("카테고리 변경은 지원하지 않습니다.", ErrorCode.INVALID_PARAMETER);
+        }
+    }
+
     private ReportCategory getReportCategory(Long categoryId) {
         if (categoryId == null) {
             return null;
@@ -433,6 +890,17 @@ public class ReportService {
 
         return reportCategoryRepository.findWithDepartmentById(categoryId)
             .orElseThrow(() -> new CustomException("카테고리를 찾을 수 없습니다.", ErrorCode.NOT_FOUND));
+    }
+
+    private Department getDepartment(Long departmentId) {
+        return departmentRepository.findById(departmentId)
+            .orElseThrow(() -> new CustomException("담당 부서를 찾을 수 없습니다.", ErrorCode.NOT_FOUND));
+    }
+
+    private void validateCategoryDepartment(ReportCategory category, Department department) {
+        if (!category.getDepartment().getId().equals(department.getId())) {
+            throw new CustomException("카테고리와 담당 부서가 일치하지 않습니다.", ErrorCode.INVALID_PARAMETER);
+        }
     }
 
     private String convertContents(JsonNode contents) {
@@ -450,6 +918,51 @@ public class ReportService {
         }
     }
 
+    private JsonNode parseReportContents(Report report) {
+        try {
+            return objectMapper.readTree(report.getContents());
+        } catch (JsonProcessingException e) {
+            throw new CustomException("제보 본문 형식이 올바르지 않습니다.", ErrorCode.INVALID_FORMAT);
+        }
+    }
+
+    private String resolveIssueGroupContent(JsonNode contents) {
+        JsonNode summary = contents == null ? null : contents.get("summary");
+        if (summary != null && summary.isTextual() && !summary.asText().isBlank()) {
+            return summary.asText();
+        }
+        return contents == null ? null : contents.toString();
+    }
+
+    private List<ReportImage> uploadAndSaveReportImages(
+        Long userId,
+        Report report,
+        List<MultipartFile> images) {
+        if (images == null || images.isEmpty()) {
+            return List.of();
+        }
+
+        List<String> uploadedObjectKeys = new java.util.ArrayList<>();
+        try {
+            List<ReportImage> reportImages = new java.util.ArrayList<>();
+            int sortOrder = 1;
+            for (MultipartFile image : images) {
+                if (image == null || image.isEmpty()) {
+                    continue;
+                }
+                UploadedReportImage uploadedImage = reportImageStorage.upload(userId, report.getId(), image);
+                uploadedObjectKeys.add(uploadedImage.objectKey());
+                reportImages.add(ReportImage.create(uploadedImage.imageUrl(), sortOrder++, report));
+            }
+
+            // TODO: DB 커밋 단계에서 실패하면 업로드된 R2 오브젝트가 남을 수 있어 추후 정리 작업이 필요하다.
+            return reportImageRepository.saveAll(reportImages);
+        } catch (RuntimeException e) {
+            uploadedObjectKeys.forEach(reportImageStorage::deleteQuietly);
+            throw e;
+        }
+    }
+
     private Map<Long, List<ReportImage>> getReportImages(List<Report> reports) {
         List<Long> reportIds = reports.stream()
             .map(Report::getId)
@@ -463,4 +976,206 @@ public class ReportService {
             .stream()
             .collect(Collectors.groupingBy(reportImage -> reportImage.getReport().getId()));
     }
+
+    private void validateAuthenticatedUser(Long userId) {
+        if (userId == null) {
+            throw new CustomException(ErrorCode.UNAUTHORIZED.getMessage(), ErrorCode.UNAUTHORIZED);
+        }
+    }
+
+    private void validateReportDraftRequest(ReportDraftRequest request) {
+        validateCoordinate("위도", request.latitude(), MIN_LATITUDE, MAX_LATITUDE);
+        validateCoordinate("경도", request.longitude(), MIN_LONGITUDE, MAX_LONGITUDE);
+        validateReportImages(request.images(), false);
+    }
+
+    private void validateReportCreateRequest(ReportCreateRequest request, List<MultipartFile> images) {
+        validateNotBlank("제보 제목", request.title());
+        validateNotBlank("도로명 주소", request.roadAddress());
+        validateNotBlank("지번 주소", request.jibunAddress());
+        validateNotBlank("시/도", request.sido());
+        validateNotBlank("시/군/구", request.sigungu());
+        validateNotBlank("읍/면/동", request.eupmyeondong());
+        if (request.contents() == null) {
+            throw new CustomException("제보 본문은 필수입니다.", ErrorCode.INVALID_PARAMETER);
+        }
+        if (request.occurredAt() == null) {
+            throw new CustomException("발생 시각은 필수입니다.", ErrorCode.INVALID_PARAMETER);
+        }
+        if (request.riskScore() == null) {
+            throw new CustomException("위험 점수는 필수입니다.", ErrorCode.INVALID_PARAMETER);
+        }
+        if (request.visibility() == null) {
+            throw new CustomException("공개 범위는 필수입니다.", ErrorCode.INVALID_PARAMETER);
+        }
+        if (request.categoryId() == null) {
+            throw new CustomException("카테고리는 필수입니다.", ErrorCode.INVALID_PARAMETER);
+        }
+        if (request.departmentId() == null) {
+            throw new CustomException("담당 부서는 필수입니다.", ErrorCode.INVALID_PARAMETER);
+        }
+        validateCoordinate("위도", request.latitude(), MIN_LATITUDE, MAX_LATITUDE);
+        validateCoordinate("경도", request.longitude(), MIN_LONGITUDE, MAX_LONGITUDE);
+        validateRiskScore(request.riskScore());
+        validateEmbedding(request.embedding());
+        if (!request.contents().isObject()) {
+            throw new CustomException("제보 본문은 JSON 객체여야 합니다.", ErrorCode.INVALID_FORMAT);
+        }
+        validateReportImages(images, false);
+    }
+
+    private void validateNotBlank(String name, String value) {
+        if (value == null || value.isBlank()) {
+            throw new CustomException(name + "은 필수입니다.", ErrorCode.INVALID_PARAMETER);
+        }
+    }
+
+    private void validateRiskScore(BigDecimal riskScore) {
+        if (riskScore.compareTo(BigDecimal.ZERO) < 0 || riskScore.compareTo(BigDecimal.valueOf(100)) > 0) {
+            throw new CustomException("위험 점수는 0부터 100 사이여야 합니다.", ErrorCode.INVALID_PARAMETER);
+        }
+    }
+
+    private void validateEmbedding(List<BigDecimal> embedding) {
+        if (embedding == null || embedding.isEmpty()) {
+            return;
+        }
+        if (embedding.size() != REPORT_EMBEDDING_DIMENSION) {
+            throw new CustomException("제보 임베딩은 1024차원이어야 합니다.", ErrorCode.INVALID_PARAMETER);
+        }
+        boolean hasNullValue = embedding.stream().anyMatch(value -> value == null);
+        if (hasNullValue) {
+            throw new CustomException("제보 임베딩 값은 null일 수 없습니다.", ErrorCode.INVALID_PARAMETER);
+        }
+    }
+
+    private void validateReportImages(List<MultipartFile> images, boolean required) {
+        if (images == null || images.isEmpty()) {
+            if (required) {
+                throw new CustomException("제보 이미지는 최소 1장 이상 첨부해야 합니다.", ErrorCode.MISSING_PARAMETER);
+            }
+            return;
+        }
+        if (images.size() > MAX_REPORT_DRAFT_IMAGE_COUNT) {
+            throw new CustomException("제보 이미지는 최대 5장까지 첨부할 수 있습니다.", ErrorCode.INVALID_PARAMETER);
+        }
+        long validImageCount = images.stream()
+            .filter(image -> image != null && !image.isEmpty())
+            .count();
+        if (required && validImageCount == 0) {
+            throw new CustomException("제보 이미지는 최소 1장 이상 첨부해야 합니다.", ErrorCode.MISSING_PARAMETER);
+        }
+        images.stream()
+            .filter(image -> image != null && !image.isEmpty())
+            .forEach(image -> {
+                if (image.getSize() > MAX_REPORT_DRAFT_IMAGE_SIZE) {
+                    throw new CustomException("제보 이미지는 장당 50MB 이하만 첨부할 수 있습니다.", ErrorCode.INVALID_PARAMETER);
+                }
+                String contentType = image.getContentType();
+                if (contentType == null || !contentType.startsWith("image/")) {
+                    throw new CustomException("제보 이미지는 image/* 형식만 첨부할 수 있습니다.", ErrorCode.INVALID_FORMAT);
+                }
+            });
+    }
+
+    private void validateCoordinate(String name, BigDecimal value, BigDecimal min, BigDecimal max) {
+        if (value == null) {
+            throw new CustomException(name + "는 필수입니다.", ErrorCode.INVALID_PARAMETER);
+        }
+        if (value.compareTo(min) < 0 || value.compareTo(max) > 0) {
+            throw new CustomException(
+                name + "는 " + min.toPlainString() + "부터 " + max.toPlainString() + " 사이여야 합니다.",
+                ErrorCode.INVALID_PARAMETER
+            );
+        }
+    }
+
+    private ReportCategory resolveReportCategory(ReportAiAnalyzeResponse aiResponse) {
+        String categoryCode = aiResponse.category() == null ? null : aiResponse.category().categoryCode();
+        if (categoryCode == null || categoryCode.isBlank()) {
+            throw new CustomException("AI가 제보 카테고리를 분류하지 못했습니다.", ErrorCode.AI_SERVER_RESPONSE_ERROR);
+        }
+
+        return reportCategoryRepository.findByCategoryCode(categoryCode)
+            .orElseThrow(() -> new CustomException("분류된 제보 카테고리를 찾을 수 없습니다.", ErrorCode.NOT_FOUND));
+    }
+
+    private ReportDraftResponse createReportDraftResponse(
+        Long userId,
+        ReportDraftRequest request,
+        LocalDateTime occurredAt,
+        AddressSnapshot address,
+        ReportAiAnalyzeResponse aiResponse,
+        ReportCategory category) {
+        LocalDateTime resolvedOccurredAt = aiResponse.occurredAt() == null ? occurredAt : aiResponse.occurredAt();
+
+        return new ReportDraftResponse(
+            null,
+            aiResponse.title(),
+            resolveContents(aiResponse, request.content(), resolvedOccurredAt),
+            request.latitude(),
+            request.longitude(),
+            address.roadAddress(),
+            address.jibunAddress(),
+            address.sido(),
+            address.sigungu(),
+            address.eupmyeondong(),
+            resolvedOccurredAt,
+            aiResponse.riskScore(),
+            ReportStatus.SUBMITTED,
+            false,
+            ReportVisibility.PUBLIC,
+            false,
+            null,
+            null,
+            userId,
+            category.getId(),
+            null,
+            category.getDepartment().getId(),
+            aiResponse.embedding()
+        );
+    }
+
+    private String toPgVector(List<BigDecimal> embedding) {
+        if (embedding == null || embedding.isEmpty()) {
+            return null;
+        }
+
+        return embedding.stream()
+            .map(value -> String.format(Locale.ROOT, "%.10f", value))
+            .collect(Collectors.joining(",", "[", "]"));
+    }
+
+    private JsonNode resolveContents(
+        ReportAiAnalyzeResponse aiResponse,
+        String originalContent,
+        LocalDateTime occurredAt) {
+        if (aiResponse.contents() != null && aiResponse.contents().isObject()) {
+            return aiResponse.contents();
+        }
+
+        return JsonNodeFactory.instance.objectNode()
+            .put("who", "확인되지 않음")
+            .put("when", occurredAt.toString())
+            .put("where", ADDRESS_NOT_RESOLVED)
+            .put("what", originalContent)
+            .put("how", originalContent)
+            .put("why", "담당 기관 확인이 필요합니다.")
+            .put("summary", originalContent);
+    }
+
+    private record MergeTarget(
+        IssueGroup issueGroup,
+        List<Report> groupReports,
+        BigDecimal newGroupDiameter,
+        BigDecimal score
+    ) {
+    }
+
+    private record Coordinate(
+        BigDecimal latitude,
+        BigDecimal longitude
+    ) {
+    }
+
 }

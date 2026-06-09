@@ -68,3 +68,34 @@ VALUES
     (20, 'HOMELESS', '노숙', 8, 6),
     (21, 'FIRE_EMERGENCY', '화재/응급', 9, 7),
     (22, 'ETC_OTHER', '기타', 10, 8);
+
+
+-- 카테고리별 중복 병합 기준
+INSERT INTO report_category_merge_rules (
+    category_id,
+    link_radius_meters,
+    max_group_diameter_meters,
+    min_embedding_similarity,
+    auto_merge_threshold
+)
+SELECT category.id, rule.link_radius_meters, rule.max_group_diameter_meters,
+       rule.min_embedding_similarity, rule.auto_merge_threshold
+FROM (
+    VALUES
+        ('ILLEGAL_PARKING', 30, 100, 0.80, 80),
+        ('ROAD_DAMAGE', 50, 120, 0.78, 80),
+        ('TRASH_DUMPING', 50, 120, 0.78, 80),
+        ('ANIMAL_CARCASS', 30, 80, 0.80, 80),
+        ('NOISE', 150, 400, 0.75, 82),
+        ('STREETLIGHT', 20, 50, 0.82, 80),
+        ('DANGEROUS_FACILITY', 50, 150, 0.78, 80),
+        ('FALL_RISK', 50, 120, 0.78, 80),
+        ('DRUNK_PERSON', 80, 200, 0.78, 82),
+        ('YOUTH_RISK', 100, 250, 0.76, 82),
+        ('SUSPICIOUS', 100, 250, 0.76, 82),
+        ('HOMELESS', 100, 300, 0.75, 82),
+        ('FIRE_EMERGENCY', 150, 500, 0.70, 85),
+        ('ETC_OTHER', 30, 80, 0.85, 90)
+) AS rule(category_code, link_radius_meters, max_group_diameter_meters, min_embedding_similarity, auto_merge_threshold)
+JOIN report_categories category
+    ON category.category_code = rule.category_code;

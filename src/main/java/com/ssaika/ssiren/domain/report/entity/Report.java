@@ -23,8 +23,10 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.ColumnTransformer;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
+import org.locationtech.jts.geom.Point;
 
 @Entity
 @Getter
@@ -50,6 +52,18 @@ public class Report extends BaseTime {
 
     @Column(nullable = false, precision = 10, scale = 7)
     private BigDecimal longitude;
+
+    @JdbcTypeCode(SqlTypes.GEOGRAPHY)
+    @Column(
+        columnDefinition = "geography(Point,4326) generated always as "
+            + "(ST_SetSRID(ST_MakePoint(longitude::double precision, latitude::double precision), 4326)::geography) stored",
+        insertable = false,
+        updatable = false)
+    private Point location;
+
+    @ColumnTransformer(write = "?::vector")
+    @Column(columnDefinition = "vector(1024)")
+    private String embedding;
 
     @Column(name = "road_address", nullable = false)
     private String roadAddress;
@@ -102,11 +116,53 @@ public class Report extends BaseTime {
     @JoinColumn(name = "department_id", nullable = false)
     private Department department;
 
+    public static Report create(
+        String title,
+        String contents,
+        BigDecimal latitude,
+        BigDecimal longitude,
+        String roadAddress,
+        String jibunAddress,
+        String sido,
+        String sigungu,
+        String eupmyeondong,
+        LocalDateTime occurredAt,
+        BigDecimal riskScore,
+        ReportVisibility visibility,
+        String embedding,
+        Boolean isRepresentative,
+        User user,
+        ReportCategory category,
+        IssueGroup issueGroup,
+        Department department) {
+        return Report.builder()
+            .title(title)
+            .contents(contents)
+            .latitude(latitude)
+            .longitude(longitude)
+            .roadAddress(roadAddress)
+            .jibunAddress(jibunAddress)
+            .sido(sido)
+            .sigungu(sigungu)
+            .eupmyeondong(eupmyeondong)
+            .occurredAt(occurredAt)
+            .riskScore(riskScore)
+            .status(ReportStatus.SUBMITTED)
+            .visibility(visibility)
+            .embedding(embedding)
+            .isDeleted(false)
+            .isRepresentative(isRepresentative)
+            .user(user)
+            .category(category)
+            .issueGroup(issueGroup)
+            .department(department)
+            .build();
+    }
+
     public void update(
         String title,
         String contents,
-        ReportVisibility visibility,
-        ReportCategory category) {
+        ReportVisibility visibility) {
         if (title != null) {
             this.title = title;
         }
@@ -116,9 +172,13 @@ public class Report extends BaseTime {
         if (visibility != null) {
             this.visibility = visibility;
         }
-        if (category != null) {
-            this.category = category;
-            this.department = category.getDepartment();
-        }
+    }
+
+    public void markRepresentative() {
+        this.isRepresentative = true;
+    }
+
+    public void unmarkRepresentative() {
+        this.isRepresentative = false;
     }
 }

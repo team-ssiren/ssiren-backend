@@ -58,3 +58,4 @@ bin/
 .DS_Store
 Thumbs.db
 desktop.ini
+/src/main/java/com/ssaika/ssiren/domain/auth/controller/TestAuthController.java
