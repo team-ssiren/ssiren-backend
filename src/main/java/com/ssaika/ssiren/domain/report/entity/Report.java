@@ -102,6 +102,46 @@ public class Report extends BaseTime {
     @JoinColumn(name = "department_id", nullable = false)
     private Department department;
 
+    public static Report create(
+        String title,
+        String contents,
+        BigDecimal latitude,
+        BigDecimal longitude,
+        String roadAddress,
+        String jibunAddress,
+        String sido,
+        String sigungu,
+        String eupmyeondong,
+        LocalDateTime occurredAt,
+        BigDecimal riskScore,
+        ReportVisibility visibility,
+        User user,
+        ReportCategory category,
+        IssueGroup issueGroup,
+        Department department) {
+        return Report.builder()
+            .title(title)
+            .contents(contents)
+            .latitude(latitude)
+            .longitude(longitude)
+            .roadAddress(roadAddress)
+            .jibunAddress(jibunAddress)
+            .sido(sido)
+            .sigungu(sigungu)
+            .eupmyeondong(eupmyeondong)
+            .occurredAt(occurredAt)
+            .riskScore(riskScore)
+            .status(ReportStatus.SUBMITTED)
+            .visibility(visibility)
+            .isDeleted(false)
+            .isRepresentative(true)
+            .user(user)
+            .category(category)
+            .issueGroup(issueGroup)
+            .department(department)
+            .build();
+    }
+
     public void update(
         String title,
         String contents,

@@ -39,4 +39,12 @@ public class ReportImage {
     @JoinColumn(name = "report_id", nullable = false)
     @OnDelete(action = OnDeleteAction.CASCADE)
     private Report report;
+
+    public static ReportImage create(String imageUrl, Integer sortOrder, Report report) {
+        return ReportImage.builder()
+            .imageUrl(imageUrl)
+            .sortOrder(sortOrder)
+            .report(report)
+            .build();
+    }
 }
