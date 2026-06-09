@@ -1,14 +1,9 @@
 package com.ssaika.ssiren.domain.admin.dto.response;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ssaika.ssiren.domain.report.dto.response.ReportCategoryResponse;
-import com.ssaika.ssiren.domain.report.dto.response.ReportDepartmentResponse;
 import com.ssaika.ssiren.domain.report.dto.response.ReportIssueGroupResponse;
-import com.ssaika.ssiren.domain.report.entity.IssueGroup;
-import com.ssaika.ssiren.domain.report.entity.Report;
-import com.ssaika.ssiren.domain.report.entity.ReportCategory;
-import com.ssaika.ssiren.domain.report.entity.ReportImage;
-import com.ssaika.ssiren.domain.report.entity.ReportStatusHistory;
+import com.ssaika.ssiren.domain.report.entity.*;
+
 import java.util.List;
 import java.util.Map;
 
@@ -16,9 +11,8 @@ public record AdminIssueDetailResponse(
         ReportIssueGroupResponse issueGroup,
         AdminRepresentativeReportResponse representativeReport,
         List<AdminReportResponse> reports,
-        ReportCategoryResponse category,
-        ReportCategoryResponse parentCategory,
-        ReportDepartmentResponse department
+        AdminReportCategoryResponse category,
+        AdminReportDepartmentResponse department
 ) {
 
     public static AdminIssueDetailResponse from(
@@ -46,9 +40,8 @@ public record AdminIssueDetailResponse(
                                 objectMapper
                         ))
                         .toList(),
-                ReportCategoryResponse.from(category),
-                parentCategory == null ? null : ReportCategoryResponse.from(parentCategory),
-                ReportDepartmentResponse.from(representativeReport.getDepartment())
+                AdminReportCategoryResponse.from(representativeReport.getCategory()),
+                AdminReportDepartmentResponse.from(representativeReport.getDepartment())
         );
     }
 }
