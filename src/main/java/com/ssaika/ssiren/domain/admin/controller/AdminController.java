@@ -22,7 +22,7 @@ public class AdminController {
 
     private final AdminMapService adminMapService;
 
-    @GetMapping("/issues")
+    @GetMapping
     public ResponseEntity<BaseResponse<AdminIssueListResponse>> getAdminIssues(
             @AuthenticationPrincipal Long userId,
             @RequestParam(required = false) BigDecimal latitude,
