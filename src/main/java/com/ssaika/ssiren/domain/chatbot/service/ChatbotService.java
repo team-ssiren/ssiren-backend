@@ -13,10 +13,12 @@ import com.ssaika.ssiren.domain.chatbot.client.dto.ChatbotPlanResponse;
 import com.ssaika.ssiren.domain.chatbot.client.dto.ChatbotReportContext;
 import com.ssaika.ssiren.domain.chatbot.client.dto.ChatbotUserLocation;
 import com.ssaika.ssiren.domain.chatbot.dto.request.ChatbotMessageSendRequest;
+import com.ssaika.ssiren.domain.chatbot.dto.request.ChatbotSessionTitleUpdateRequest;
 import com.ssaika.ssiren.domain.chatbot.dto.response.ChatbotMessageCursorResponse;
 import com.ssaika.ssiren.domain.chatbot.dto.response.ChatbotMessageResponse;
 import com.ssaika.ssiren.domain.chatbot.dto.response.ChatbotMessageSendResponse;
 import com.ssaika.ssiren.domain.chatbot.dto.response.ChatbotSessionResponse;
+import com.ssaika.ssiren.domain.chatbot.dto.response.ChatbotSessionTitleUpdateResponse;
 import com.ssaika.ssiren.domain.chatbot.entity.ChatbotMessage;
 import com.ssaika.ssiren.domain.chatbot.entity.ChatbotSession;
 import com.ssaika.ssiren.domain.chatbot.repository.ChatbotMessageRepository;
@@ -126,11 +128,22 @@ public class ChatbotService {
     }
 
     @Transactional
+    public ChatbotSessionTitleUpdateResponse updateChatbotSessionTitle(
+        Long userId,
+        Long sessionId,
+        ChatbotSessionTitleUpdateRequest request) {
+        ChatbotSession session = getOwnedSession(userId, sessionId);
+        session.updateTitle(request.title());
+
+        return ChatbotSessionTitleUpdateResponse.from(session);
+    }
+
+    @Transactional
     public ChatbotMessageSendResponse saveChatbotMessage(
         Long userId,
         Long sessionId,
         ChatbotMessageSendRequest request) {
-        ChatbotSession session = getSessionForSend(userId, sessionId);
+        ChatbotSession session = getOwnedSession(userId, sessionId);
         Long messageCount = chatbotMessageRepository.countBySession_Id(sessionId);
         LocalDateTime now = LocalDateTime.now();
         List<ChatbotHistoryMessage> history = getRecentHistory(sessionId);
@@ -160,7 +173,7 @@ public class ChatbotService {
         );
     }
 
-    private ChatbotSession getSessionForSend(Long userId, Long sessionId) {
+    private ChatbotSession getOwnedSession(Long userId, Long sessionId) {
         ChatbotSession session = chatbotSessionRepository.findById(sessionId)
             .orElseThrow(() -> new CustomException(
                 ErrorCode.CHATBOT_SESSION_NOT_FOUND.getMessage(),

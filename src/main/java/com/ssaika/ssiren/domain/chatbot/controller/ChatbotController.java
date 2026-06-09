@@ -1,9 +1,11 @@
 package com.ssaika.ssiren.domain.chatbot.controller;
 
 import com.ssaika.ssiren.domain.chatbot.dto.request.ChatbotMessageSendRequest;
+import com.ssaika.ssiren.domain.chatbot.dto.request.ChatbotSessionTitleUpdateRequest;
 import com.ssaika.ssiren.domain.chatbot.dto.response.ChatbotMessageCursorResponse;
 import com.ssaika.ssiren.domain.chatbot.dto.response.ChatbotMessageSendResponse;
 import com.ssaika.ssiren.domain.chatbot.dto.response.ChatbotSessionResponse;
+import com.ssaika.ssiren.domain.chatbot.dto.response.ChatbotSessionTitleUpdateResponse;
 import com.ssaika.ssiren.domain.chatbot.service.ChatbotService;
 import com.ssaika.ssiren.global.dto.BaseResponse;
 import com.ssaika.ssiren.global.dto.PageResponseDto;
@@ -17,6 +19,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -69,6 +72,19 @@ public class ChatbotController {
         chatbotService.deleteChatbotSession(TEST_USER_ID, sessionId);
 
         return ResponseEntity.ok(BaseResponse.success("챗봇 세션 삭제 성공", null));
+    }
+
+    @PatchMapping("/sessions/{sessionId}")
+    public ResponseEntity<BaseResponse<ChatbotSessionTitleUpdateResponse>> updateChatbotSessionTitle(
+        @PathVariable Long sessionId,
+        @Valid @RequestBody ChatbotSessionTitleUpdateRequest request) {
+        ChatbotSessionTitleUpdateResponse response = chatbotService.updateChatbotSessionTitle(
+            TEST_USER_ID,
+            sessionId,
+            request
+        );
+
+        return ResponseEntity.ok(BaseResponse.success("챗봇 제목 변경 성공", response));
     }
 
     @PostMapping("/sessions/{sessionId}")

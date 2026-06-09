@@ -27,7 +27,7 @@ public class ChatbotAiClient {
     private final RestClient restClient;
 
     public ChatbotAiClient(
-        @Value("${chatbot.ai-base-url:http://localhost:8000}") String aiBaseUrl) {
+        @Value("${AI_BASE_URL:http://localhost:8000}") String aiBaseUrl) {
         this.restClient = RestClient.builder()
             .baseUrl(aiBaseUrl)
             .requestFactory(createRequestFactory())
