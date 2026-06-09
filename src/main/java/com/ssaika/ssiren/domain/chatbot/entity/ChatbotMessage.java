@@ -47,4 +47,17 @@ public class ChatbotMessage {
     @JoinColumn(name = "session_id", nullable = false)
     @OnDelete(action = OnDeleteAction.CASCADE)
     private ChatbotSession session;
+
+    public static ChatbotMessage create(
+        ChatbotSession session,
+        ChatbotSenderType senderType,
+        String message,
+        LocalDateTime createdAt) {
+        return ChatbotMessage.builder()
+            .session(session)
+            .senderType(senderType)
+            .message(message)
+            .createdAt(createdAt)
+            .build();
+    }
 }

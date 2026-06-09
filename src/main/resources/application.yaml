@@ -36,3 +36,6 @@ jwt:
 firebase:
   service-account-path: ${FIREBASE_SERVICE_ACCOUNT_PATH:}
   service-account-json: ${FIREBASE_SERVICE_ACCOUNT_JSON:}
+
+chatbot:
+  ai-base-url: ${CHATBOT_AI_BASE_URL:http://localhost:8000}

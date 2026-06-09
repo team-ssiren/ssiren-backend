@@ -41,4 +41,8 @@ public class ChatbotSession {
     @JoinColumn(name = "user_id", nullable = false)
     @OnDelete(action = OnDeleteAction.CASCADE)
     private User user;
+
+    public void updateTitle(String title) {
+        this.title = title;
+    }
 }
