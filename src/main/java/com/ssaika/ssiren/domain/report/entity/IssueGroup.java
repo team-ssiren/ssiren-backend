@@ -65,6 +65,9 @@ public class IssueGroup extends BaseTime {
     @Column(name = "risk_score", nullable = false, precision = 5, scale = 2)
     private BigDecimal riskScore;
 
+    @Column(name = "group_diameter_meters", nullable = false, precision = 10, scale = 2)
+    private BigDecimal groupDiameterMeters;
+
     public static IssueGroup create(
         String title,
         String content,
@@ -84,6 +87,7 @@ public class IssueGroup extends BaseTime {
             .recentReportedAt(recentReportedAt)
             .status(IssueGroupStatus.ACTIVE)
             .riskScore(riskScore)
+            .groupDiameterMeters(BigDecimal.ZERO)
             .build();
     }
 
