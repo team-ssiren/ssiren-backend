@@ -3,21 +3,11 @@ package com.ssaika.ssiren.domain.report.entity;
 import com.ssaika.ssiren.global.entity.BaseTime;
 import com.ssaika.ssiren.global.enums.IssueGroupStatus;
 import com.ssaika.ssiren.global.enums.ReportReactionType;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
+import lombok.*;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
 
 @Entity
 @Getter
@@ -146,6 +136,10 @@ public class IssueGroup extends BaseTime {
 
         decreaseReactionCount(previousReactionType);
         increaseReactionCount(newReactionType);
+    }
+
+    public void updateStatus(IssueGroupStatus status) {
+        this.status = status;
     }
 
     private void increaseReactionCount(ReportReactionType reactionType) {

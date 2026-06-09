@@ -1,10 +1,6 @@
 package com.ssaika.ssiren.domain.report.repository;
 
 import com.ssaika.ssiren.domain.report.entity.Report;
-import java.math.BigDecimal;
-import java.util.Collection;
-import java.util.List;
-import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -14,6 +10,11 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+
+import java.math.BigDecimal;
+import java.util.Collection;
+import java.util.List;
+import java.util.Optional;
 
 public interface ReportRepository extends JpaRepository<Report, Long>, JpaSpecificationExecutor<Report> {
 
@@ -97,4 +98,16 @@ public interface ReportRepository extends JpaRepository<Report, Long>, JpaSpecif
         @Param("linkRadiusMeters") Integer linkRadiusMeters,
         @Param("minEmbeddingSimilarity") BigDecimal minEmbeddingSimilarity
     );
+
+    @Query("""
+    select r
+    from Report r
+    join fetch r.user
+    join fetch r.issueGroup
+    join fetch r.department d
+    join fetch d.agencyType
+    where r.issueGroup.id = :issueGroupId
+      and r.isDeleted = false
+    """)
+    List<Report> findReportsForAdminStatusUpdate(@Param("issueGroupId") Long issueGroupId);
 }
