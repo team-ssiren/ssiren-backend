@@ -1,6 +1,7 @@
 services:
   postgres:
-    image: pgvector/pgvector:pg16
+    build:
+      context: ./docker/postgres
     container_name: ssiren-postgres
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-ssiren}

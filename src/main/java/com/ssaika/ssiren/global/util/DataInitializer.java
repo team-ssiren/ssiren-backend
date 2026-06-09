@@ -13,10 +13,12 @@ import com.ssaika.ssiren.domain.notification.repository.NotificationRepository;
 import com.ssaika.ssiren.domain.report.entity.IssueGroup;
 import com.ssaika.ssiren.domain.report.entity.Report;
 import com.ssaika.ssiren.domain.report.entity.ReportCategory;
+import com.ssaika.ssiren.domain.report.entity.ReportCategoryMergeRule;
 import com.ssaika.ssiren.domain.report.entity.ReportImage;
 import com.ssaika.ssiren.domain.report.entity.ReportReactionLog;
 import com.ssaika.ssiren.domain.report.entity.ReportStatusHistory;
 import com.ssaika.ssiren.domain.report.repository.IssueGroupRepository;
+import com.ssaika.ssiren.domain.report.repository.ReportCategoryMergeRuleRepository;
 import com.ssaika.ssiren.domain.report.repository.ReportCategoryRepository;
 import com.ssaika.ssiren.domain.report.repository.ReportImageRepository;
 import com.ssaika.ssiren.domain.report.repository.ReportReactionLogRepository;
@@ -44,6 +46,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
@@ -58,6 +61,7 @@ public class DataInitializer implements ApplicationRunner {
     private final AgencyTypeRepository agencyTypeRepository;
     private final DepartmentRepository departmentRepository;
     private final ReportCategoryRepository reportCategoryRepository;
+    private final ReportCategoryMergeRuleRepository reportCategoryMergeRuleRepository;
     private final UserRepository userRepository;
     private final UserConsentRepository userConsentRepository;
     private final UserFcmTokenRepository userFcmTokenRepository;
@@ -117,6 +121,8 @@ public class DataInitializer implements ApplicationRunner {
                 ? saveReportCategoryTemplate(departments)
                 : findAllSorted(reportCategoryRepository);
 
+        saveReportCategoryMergeRulesIfNeeded(reportCategories);
+
         return new SeedTemplate(departments, reportCategories);
     }
 
@@ -150,6 +156,29 @@ public class DataInitializer implements ApplicationRunner {
         List<ReportCategory> categories = new ArrayList<>(parents);
         categories.addAll(children);
         return categories;
+    }
+
+    private void saveReportCategoryMergeRulesIfNeeded(List<ReportCategory> reportCategories) {
+        if (reportCategoryMergeRuleRepository.count() > 0) {
+            return;
+        }
+
+        SeedTemplate template = new SeedTemplate(List.of(), reportCategories);
+        reportCategoryMergeRuleRepository.saveAll(List.of(
+                mergeRule(template.categoryByCode("ILLEGAL_PARKING"), 30, 100, "0.80", "80"),
+                mergeRule(template.categoryByCode("ROAD_DAMAGE"), 50, 120, "0.78", "80"),
+                mergeRule(template.categoryByCode("TRASH_DUMPING"), 50, 120, "0.78", "80"),
+                mergeRule(template.categoryByCode("ANIMAL_CARCASS"), 30, 80, "0.80", "80"),
+                mergeRule(template.categoryByCode("NOISE"), 150, 400, "0.75", "82"),
+                mergeRule(template.categoryByCode("STREETLIGHT"), 20, 50, "0.82", "80"),
+                mergeRule(template.categoryByCode("DANGEROUS_FACILITY"), 50, 150, "0.78", "80"),
+                mergeRule(template.categoryByCode("FALL_RISK"), 50, 120, "0.78", "80"),
+                mergeRule(template.categoryByCode("DRUNK_PERSON"), 80, 200, "0.78", "82"),
+                mergeRule(template.categoryByCode("YOUTH_RISK"), 100, 250, "0.76", "82"),
+                mergeRule(template.categoryByCode("SUSPICIOUS"), 100, 250, "0.76", "82"),
+                mergeRule(template.categoryByCode("HOMELESS"), 100, 300, "0.75", "82"),
+                mergeRule(template.categoryByCode("FIRE_EMERGENCY"), 150, 500, "0.70", "85"),
+                mergeRule(template.categoryByCode("ETC_OTHER"), 30, 80, "0.85", "90")));
     }
 
     private void saveDummyData(SeedTemplate template) {
@@ -334,7 +363,22 @@ public class DataInitializer implements ApplicationRunner {
                 .set("recentReportedAt", LocalDateTime.now().minusHours(2))
                 .set("status", IssueGroupStatus.ACTIVE)
                 .set("riskScore", new BigDecimal(riskScore))
+                .set("groupDiameterMeters", BigDecimal.ZERO)
                 .get();
+    }
+
+    private ReportCategoryMergeRule mergeRule(
+            ReportCategory category,
+            int linkRadiusMeters,
+            int maxGroupDiameterMeters,
+            String minEmbeddingSimilarity,
+            String autoMergeThreshold) {
+        return ReportCategoryMergeRule.create(
+                category,
+                linkRadiusMeters,
+                maxGroupDiameterMeters,
+                new BigDecimal(minEmbeddingSimilarity),
+                new BigDecimal(autoMergeThreshold));
     }
 
     private Report report(
@@ -354,6 +398,7 @@ public class DataInitializer implements ApplicationRunner {
                 .set("contents", "{\"summary\":\"" + summary + "\",\"source\":\"dummy-seed\",\"urgency\":\"normal\"}")
                 .set("latitude", new BigDecimal(latitude))
                 .set("longitude", new BigDecimal(longitude))
+                .set("embedding", dummyEmbedding(title))
                 .set("roadAddress", roadAddress)
                 .set("jibunAddress", jibunAddress)
                 .set("sido", "서울특별시")
@@ -370,6 +415,19 @@ public class DataInitializer implements ApplicationRunner {
                 .set("issueGroup", issueGroup)
                 .set("department", category.getDepartment())
                 .get();
+    }
+
+    private String dummyEmbedding(String seedText) {
+        int seed = Math.abs(seedText.hashCode());
+        StringBuilder embedding = new StringBuilder("[");
+        for (int index = 0; index < 1024; index++) {
+            if (index > 0) {
+                embedding.append(',');
+            }
+            double value = (((seed + index * 37) % 2000) - 1000) / 10000.0;
+            embedding.append(String.format(Locale.ROOT, "%.6f", value));
+        }
+        return embedding.append(']').toString();
     }
 
     private ReportImage reportImage(Report report, String imageUrl, int sortOrder) {

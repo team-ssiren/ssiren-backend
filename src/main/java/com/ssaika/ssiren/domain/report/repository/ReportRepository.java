@@ -1,6 +1,8 @@
 package com.ssaika.ssiren.domain.report.repository;
 
 import com.ssaika.ssiren.domain.report.entity.Report;
+import java.math.BigDecimal;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
@@ -10,6 +12,8 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 public interface ReportRepository extends JpaRepository<Report, Long>, JpaSpecificationExecutor<Report> {
 
@@ -44,4 +48,50 @@ public interface ReportRepository extends JpaRepository<Report, Long>, JpaSpecif
         "department.agencyType"
     })
     Optional<Report> findByIdAndUser_Id(Long id, Long userId);
+
+    @EntityGraph(attributePaths = {"issueGroup"})
+    List<Report> findByIssueGroup_IdInAndIsDeletedFalse(Collection<Long> issueGroupIds);
+
+    @Query(
+        value = """
+            select
+                r.id as "candidateReportId",
+                r.issue_group_id as "candidateIssueGroupId",
+                ST_Distance(
+                    r.location,
+                    ST_SetSRID(
+                        ST_MakePoint(cast(:longitude as double precision), cast(:latitude as double precision)),
+                        4326
+                    )::geography
+                ) as "distanceMeters",
+                (1 - (r.embedding <=> cast(:embedding as vector))) as "embeddingSimilarity"
+            from reports r
+            where r.category_id = :categoryId
+              and r.department_id = :departmentId
+              and r.is_deleted = false
+              and r.status in ('SUBMITTED', 'RECEIVED', 'CHECKING', 'IN_PROGRESS', 'TRANSFERRED')
+              and r.location is not null
+              and r.embedding is not null
+              and ST_DWithin(
+                    r.location,
+                    ST_SetSRID(
+                        ST_MakePoint(cast(:longitude as double precision), cast(:latitude as double precision)),
+                        4326
+                    )::geography,
+                    :linkRadiusMeters
+                  )
+              and (1 - (r.embedding <=> cast(:embedding as vector))) >= :minEmbeddingSimilarity
+            order by "embeddingSimilarity" desc, "distanceMeters" asc
+            """,
+        nativeQuery = true
+    )
+    List<DuplicateReportCandidate> findDuplicateCandidates(
+        @Param("categoryId") Long categoryId,
+        @Param("departmentId") Long departmentId,
+        @Param("latitude") BigDecimal latitude,
+        @Param("longitude") BigDecimal longitude,
+        @Param("embedding") String embedding,
+        @Param("linkRadiusMeters") Integer linkRadiusMeters,
+        @Param("minEmbeddingSimilarity") BigDecimal minEmbeddingSimilarity
+    );
 }

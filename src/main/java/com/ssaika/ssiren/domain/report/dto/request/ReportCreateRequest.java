@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 public record ReportCreateRequest(
     @NotBlank(message = "제보 제목은 필수입니다.")
@@ -50,6 +51,8 @@ public record ReportCreateRequest(
     @NotNull(message = "담당 부서는 필수입니다.")
     Long departmentId,
 
-    Long issueGroupId
+    Long issueGroupId,
+
+    List<BigDecimal> embedding
 ) {
 }

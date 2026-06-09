@@ -65,6 +65,9 @@ public class IssueGroup extends BaseTime {
     @Column(name = "risk_score", nullable = false, precision = 5, scale = 2)
     private BigDecimal riskScore;
 
+    @Column(name = "group_diameter_meters", nullable = false, precision = 10, scale = 2)
+    private BigDecimal groupDiameterMeters;
+
     public static IssueGroup create(
         String title,
         String content,
@@ -84,6 +87,7 @@ public class IssueGroup extends BaseTime {
             .recentReportedAt(recentReportedAt)
             .status(IssueGroupStatus.ACTIVE)
             .riskScore(riskScore)
+            .groupDiameterMeters(BigDecimal.ZERO)
             .build();
     }
 
@@ -91,6 +95,22 @@ public class IssueGroup extends BaseTime {
         if (reportCount > 0) {
             reportCount--;
         }
+    }
+
+    public void mergeReport(
+        BigDecimal groupLatitude,
+        BigDecimal groupLongitude,
+        BigDecimal groupDiameterMeters,
+        BigDecimal riskScore,
+        LocalDateTime recentReportedAt) {
+        this.reportCount++;
+        this.groupLatitude = groupLatitude;
+        this.groupLongitude = groupLongitude;
+        this.groupDiameterMeters = groupDiameterMeters;
+        if (riskScore.compareTo(this.riskScore) > 0) {
+            this.riskScore = riskScore;
+        }
+        this.recentReportedAt = recentReportedAt;
     }
 
     public void applyReaction(
