@@ -164,10 +164,65 @@ class ChatbotServiceTest {
             .thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> chatbotService.getChatbotMessages(1L, 1L, null, 20))
-            .isInstanceOf(CustomException.class);
+            .isInstanceOf(CustomException.class)
+            .hasMessage("존재하지 않는 세션입니다.");
 
         verify(chatbotMessageRepository, never()).findAllBySession_IdOrderByIdDesc(1L,
             PageRequest.of(0, 21));
+    }
+
+    @Test
+    void deleteChatbotSessionDeletesOwnedSession() {
+        when(chatbotSessionRepository.findById(1L))
+            .thenReturn(Optional.of(chatbotSession));
+        when(chatbotSession.getUser()).thenReturn(user);
+        when(user.getId()).thenReturn(1L);
+
+        chatbotService.deleteChatbotSession(1L, 1L);
+
+        verify(chatbotSessionRepository).delete(chatbotSession);
+    }
+
+    @Test
+    void deleteChatbotSessionThrowsExceptionWhenSessionDoesNotExist() {
+        when(chatbotSessionRepository.findById(1L))
+            .thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> chatbotService.deleteChatbotSession(1L, 1L))
+            .isInstanceOf(CustomException.class)
+            .hasMessage("존재하지 않는 세션입니다.");
+
+        verify(chatbotSessionRepository, never()).delete(ArgumentMatchers.any());
+    }
+
+    @Test
+    void deleteChatbotSessionThrowsExceptionWhenUserIsNotOwner() {
+        when(chatbotSessionRepository.findById(1L))
+            .thenReturn(Optional.of(chatbotSession));
+        when(chatbotSession.getUser()).thenReturn(user);
+        when(user.getId()).thenReturn(2L);
+
+        assertThatThrownBy(() -> chatbotService.deleteChatbotSession(1L, 1L))
+            .isInstanceOf(CustomException.class);
+
+        verify(chatbotSessionRepository, never()).delete(ArgumentMatchers.any());
+    }
+
+    @Test
+    void saveChatbotMessageThrowsExceptionWhenSessionDoesNotExist() {
+        ChatbotMessageSendRequest request = new ChatbotMessageSendRequest(
+            "이 근처에 위험한 제보 있어?",
+            new BigDecimal("36.36"),
+            new BigDecimal("127.34")
+        );
+        when(chatbotSessionRepository.findById(1L))
+            .thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> chatbotService.saveChatbotMessage(1L, 1L, request))
+            .isInstanceOf(CustomException.class)
+            .hasMessage("존재하지 않는 세션입니다.");
+
+        verify(chatbotMessageRepository, never()).save(ArgumentMatchers.any());
     }
 
     @Test

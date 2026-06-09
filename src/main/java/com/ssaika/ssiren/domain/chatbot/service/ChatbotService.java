@@ -91,8 +91,10 @@ public class ChatbotService {
     public ChatbotMessageCursorResponse getChatbotMessages(Long userId, Long sessionId, Long cursor,
         Integer size) {
         chatbotSessionRepository.findByIdAndUser_Id(sessionId, userId)
-            .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND.getMessage(),
-                ErrorCode.NOT_FOUND));
+            .orElseThrow(() -> new CustomException(
+                ErrorCode.CHATBOT_SESSION_NOT_FOUND.getMessage(),
+                ErrorCode.CHATBOT_SESSION_NOT_FOUND
+            ));
 
         int requestSize = size + 1;
         Pageable pageable = PageRequest.of(0, requestSize);
@@ -107,6 +109,20 @@ public class ChatbotService {
             .toList();
 
         return ChatbotMessageCursorResponse.of(content, hasNext);
+    }
+
+    @Transactional
+    public void deleteChatbotSession(Long userId, Long sessionId) {
+        ChatbotSession session = chatbotSessionRepository.findById(sessionId)
+            .orElseThrow(() -> new CustomException(
+                ErrorCode.CHATBOT_SESSION_NOT_FOUND.getMessage(),
+                ErrorCode.CHATBOT_SESSION_NOT_FOUND
+            ));
+        if (!session.getUser().getId().equals(userId)) {
+            throw new CustomException(ErrorCode.FORBIDDEN.getMessage(), ErrorCode.FORBIDDEN);
+        }
+
+        chatbotSessionRepository.delete(session);
     }
 
     @Transactional
@@ -146,8 +162,10 @@ public class ChatbotService {
 
     private ChatbotSession getSessionForSend(Long userId, Long sessionId) {
         ChatbotSession session = chatbotSessionRepository.findById(sessionId)
-            .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND.getMessage(),
-                ErrorCode.NOT_FOUND));
+            .orElseThrow(() -> new CustomException(
+                ErrorCode.CHATBOT_SESSION_NOT_FOUND.getMessage(),
+                ErrorCode.CHATBOT_SESSION_NOT_FOUND
+            ));
         if (!session.getUser().getId().equals(userId)) {
             throw new CustomException(ErrorCode.FORBIDDEN.getMessage(), ErrorCode.FORBIDDEN);
         }

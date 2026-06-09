@@ -15,6 +15,7 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -61,6 +62,13 @@ public class ChatbotController {
 
         return ResponseEntity.status(HttpStatus.CREATED)
             .body(BaseResponse.success(HttpStatus.CREATED, "챗봇 세션 생성 성공", response));
+    }
+
+    @DeleteMapping("/sessions/{sessionId}")
+    public ResponseEntity<BaseResponse<Void>> deleteChatbotSession(@PathVariable Long sessionId) {
+        chatbotService.deleteChatbotSession(TEST_USER_ID, sessionId);
+
+        return ResponseEntity.ok(BaseResponse.success("챗봇 세션 삭제 성공", null));
     }
 
     @PostMapping("/sessions/{sessionId}")
