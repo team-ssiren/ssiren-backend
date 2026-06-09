@@ -1,0 +1,362 @@
+package com.ssaika.ssiren.domain.admin.service;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ssaika.ssiren.domain.admin.dto.response.AdminIssueDetailResponse;
+import com.ssaika.ssiren.domain.admin.dto.response.AdminIssueResponse;
+import com.ssaika.ssiren.domain.report.entity.IssueGroup;
+import com.ssaika.ssiren.domain.report.entity.Report;
+import com.ssaika.ssiren.domain.report.entity.ReportImage;
+import com.ssaika.ssiren.domain.report.entity.ReportStatusHistory;
+import com.ssaika.ssiren.domain.report.repository.*;
+import com.ssaika.ssiren.domain.user.entity.OfficerDepartment;
+import com.ssaika.ssiren.domain.user.entity.User;
+import com.ssaika.ssiren.domain.user.repository.OfficerDepartmentRepository;
+import com.ssaika.ssiren.domain.user.repository.UserRepository;
+import com.ssaika.ssiren.global.enums.IssueGroupStatus;
+import com.ssaika.ssiren.global.enums.ReportStatus;
+import com.ssaika.ssiren.global.enums.UserRole;
+import com.ssaika.ssiren.global.exception.CustomException;
+import com.ssaika.ssiren.global.exception.ErrorCode;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.format.DateTimeParseException;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+@Slf4j
+@Service
+@RequiredArgsConstructor
+@Transactional(readOnly = true)
+public class AdminMapService {
+
+    private final ReportRepository reportRepository;
+    private final UserRepository userRepository;
+    private final OfficerDepartmentRepository officerDepartmentRepository;
+    private final IssueGroupRepository issueGroupRepository;
+    private final ReportImageRepository reportImageRepository;
+    private final ReportStatusHistoryRepository reportStatusHistoryRepository;
+    private final ObjectMapper objectMapper;
+
+    public List<AdminIssueResponse> getAdminIssues(
+            Long userId,
+            BigDecimal latitude,
+            BigDecimal longitude,
+            Integer radiusMeters,
+            BigDecimal swLat,
+            BigDecimal swLng,
+            BigDecimal neLat,
+            BigDecimal neLng,
+            Long categoryId,
+            Long agencyTypeId,
+            Long departmentId,
+            Boolean myDepartmentOnly,
+            Boolean deletedOnly,
+            IssueGroupStatus status,
+            ReportStatus reportStatus,
+            BigDecimal riskMin,
+            BigDecimal riskMax,
+            String from,
+            String to) {
+        validateAuthenticatedUser(userId);
+        validateRadiusParameters(latitude, longitude, radiusMeters);
+        validateBoundsParameters(swLat, swLng, neLat, neLng);
+        validateRiskRange(riskMin, riskMax);
+        validateBoundsRange(swLat, swLng, neLat, neLng);
+        LocalDateTime fromDateTime = parseFromDateTime(from);
+        LocalDateTime toDateTime = parseToDateTime(to);
+        validateDateRange(fromDateTime, toDateTime);
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND.getMessage(),
+                        ErrorCode.USER_NOT_FOUND));
+
+        validateAdminOrOfficer(user);
+
+        log.info(
+                "Get admin issues. userId={}, role={}, latitude={}, longitude={}, "
+                        + "radiusMeters={}, swLat={}, swLng={}, neLat={}, neLng={}, categoryId={}, "
+                        + "agencyTypeId={}, departmentId={}, myDepartmentOnly={}, deletedOnly={}, status={}, "
+                        + "reportStatus={}, riskMin={}, riskMax={}, from={}, to={}",
+                userId,
+                user.getRole(),
+                latitude,
+                longitude,
+                radiusMeters,
+                swLat,
+                swLng,
+                neLat,
+                neLng,
+                categoryId,
+                agencyTypeId,
+                departmentId,
+                myDepartmentOnly,
+                deletedOnly,
+                status,
+                reportStatus,
+                riskMin,
+                riskMax,
+                fromDateTime,
+                toDateTime
+        );
+
+        Specification<Report> specification = ReportSpecification.isRepresentative()
+                .and(ReportSpecification.isDeletedOnly(deletedOnly))
+                .and(ReportSpecification.hasCategory(categoryId))
+                .and(ReportSpecification.hasIssueGroupStatus(status))
+                .and(ReportSpecification.hasStatus(reportStatus))
+                .and(ReportSpecification.issueGroupRiskScoreFrom(riskMin))
+                .and(ReportSpecification.issueGroupRiskScoreTo(riskMax))
+                .and(ReportSpecification.recentReportedAtFrom(fromDateTime))
+                .and(ReportSpecification.recentReportedAtTo(toDateTime))
+                .and(ReportSpecification.issueGroupInBounds(swLat, swLng, neLat, neLng))
+                .and(ReportSpecification.issueGroupWithinRadius(latitude, longitude, radiusMeters))
+                .and(resolveJurisdictionSpecification(user, agencyTypeId, departmentId, myDepartmentOnly));
+
+        List<Report> representativeReports = reportRepository.findAll(
+                specification,
+                Sort.by(Sort.Direction.DESC, "issueGroup.riskScore")
+        );
+
+        if (representativeReports.isEmpty()) {
+            return List.of();
+        }
+
+        List<Long> representativeReportIds = representativeReports.stream()
+                .map(Report::getId)
+                .toList();
+
+        Map<Long, List<ReportImage>> reportImageMap = reportImageRepository
+                .findByReport_IdInOrderByReport_IdAscSortOrderAsc(representativeReportIds)
+                .stream()
+                .collect(Collectors.groupingBy(reportImage -> reportImage.getReport().getId()));
+
+        Map<Long, List<ReportStatusHistory>> statusHistoryMap = reportStatusHistoryRepository
+                .findByReport_IdInOrderByReport_IdAscCreatedAtAsc(representativeReportIds)
+                .stream()
+                .collect(Collectors.groupingBy(statusHistory -> statusHistory.getReport().getId()));
+
+        return representativeReports.stream()
+                .map(report -> AdminIssueResponse.from(
+                        report,
+                        reportImageMap.getOrDefault(report.getId(), List.of()),
+                        statusHistoryMap.getOrDefault(report.getId(), List.of()),
+                        objectMapper
+                ))
+                .toList();
+    }
+
+    public AdminIssueDetailResponse getAdminIssue(Long userId, Long issueGroupId) {
+        validateAuthenticatedUser(userId);
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND.getMessage(),
+                        ErrorCode.USER_NOT_FOUND));
+
+        validateAdminOrOfficer(user);
+
+        log.info("Get admin issue detail. userId={}, role={}, issueGroupId={}",
+                userId, user.getRole(), issueGroupId);
+
+        IssueGroup issueGroup = issueGroupRepository.findById(issueGroupId)
+                .orElseThrow(() -> new CustomException("이슈 그룹을 찾을 수 없습니다.", ErrorCode.NOT_FOUND));
+
+        Specification<Report> specification = ReportSpecification.hasIssueGroup(issueGroupId);
+        List<Report> reports = reportRepository.findAll(
+                specification,
+                Sort.by(Sort.Direction.DESC, "createdAt")
+        );
+
+        if (reports.isEmpty()) {
+            throw new CustomException("이슈 그룹에 속한 제보를 찾을 수 없습니다.", ErrorCode.NOT_FOUND);
+        }
+
+        Report representativeReport = findRepresentativeReport(reports);
+
+        validateIssueAccessByAgencyType(user, representativeReport);
+
+        List<Long> reportIds = reports.stream()
+                .map(Report::getId)
+                .toList();
+
+        Map<Long, List<ReportImage>> reportImageMap = reportImageRepository
+                .findByReport_IdInOrderByReport_IdAscSortOrderAsc(reportIds)
+                .stream()
+                .collect(Collectors.groupingBy(reportImage -> reportImage.getReport().getId()));
+
+        List<ReportStatusHistory> representativeStatusHistories =
+                reportStatusHistoryRepository.findByReport_IdOrderByCreatedAtAsc(
+                        representativeReport.getId()
+                );
+
+        return AdminIssueDetailResponse.from(
+                issueGroup,
+                representativeReport,
+                reports,
+                reportImageMap,
+                representativeStatusHistories,
+                objectMapper
+        );
+    }
+
+    // 이슈 그룹 조회 파트
+    private Specification<Report> resolveJurisdictionSpecification(
+            User user,
+            Long agencyTypeId,
+            Long departmentId,
+            Boolean myDepartmentOnly) {
+        if (user.getRole() == UserRole.ADMIN) {
+            return ReportSpecification.hasAgencyType(agencyTypeId)
+                    .and(ReportSpecification.hasDepartment(departmentId));
+        }
+
+        List<OfficerDepartment> officerDepartments =
+                officerDepartmentRepository.findByUserId(user.getId());
+        List<Long> departmentIds = officerDepartments.stream()
+                .map(officerDepartment -> officerDepartment.getDepartment().getId())
+                .distinct()
+                .toList();
+        List<Long> agencyTypeIds = officerDepartments.stream()
+                .map(officerDepartment -> officerDepartment.getDepartment().getAgencyType().getId())
+                .distinct()
+                .toList();
+
+        if (Boolean.TRUE.equals(myDepartmentOnly)) {
+            return ReportSpecification.hasDepartmentIn(departmentIds)
+                    .and(ReportSpecification.hasDepartment(departmentId));
+        }
+
+        return ReportSpecification.hasAgencyTypeIn(agencyTypeIds)
+                .and(ReportSpecification.hasAgencyType(agencyTypeId));
+    }
+
+    private void validateAuthenticatedUser(Long userId) {
+        if (userId == null) {
+            throw new CustomException(ErrorCode.UNAUTHORIZED.getMessage(), ErrorCode.UNAUTHORIZED);
+        }
+    }
+
+    private void validateAdminOrOfficer(User user) {
+        if (user.getRole() != UserRole.ADMIN && user.getRole() != UserRole.OFFICER) {
+            throw new CustomException(ErrorCode.FORBIDDEN.getMessage(), ErrorCode.FORBIDDEN);
+        }
+    }
+
+    private LocalDateTime parseFromDateTime(String value) {
+        return parseDateTime(value, LocalTime.MIN);
+    }
+
+    private LocalDateTime parseToDateTime(String value) {
+        return parseDateTime(value, LocalTime.MAX);
+    }
+
+    private LocalDateTime parseDateTime(String value, LocalTime defaultTime) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+
+        try {
+            return LocalDateTime.parse(value);
+        } catch (DateTimeParseException e) {
+            try {
+                return LocalDate.parse(value).atTime(defaultTime);
+            } catch (DateTimeParseException ignored) {
+                throw new CustomException("날짜 형식이 올바르지 않습니다.", ErrorCode.INVALID_FORMAT);
+            }
+        }
+    }
+
+    private void validateDateRange(LocalDateTime from, LocalDateTime to) {
+        if (from != null && to != null && from.isAfter(to)) {
+            throw new CustomException("조회 시작일은 종료일보다 이후일 수 없습니다.", ErrorCode.INVALID_PARAMETER);
+        }
+    }
+
+    private void validateRadiusParameters(
+            BigDecimal latitude,
+            BigDecimal longitude,
+            Integer radiusMeters) {
+        boolean hasAnyRadiusParameter =
+                latitude != null || longitude != null || radiusMeters != null;
+        boolean hasAllRadiusParameters =
+                latitude != null && longitude != null && radiusMeters != null;
+
+        if (hasAnyRadiusParameter && !hasAllRadiusParameters) {
+            throw new CustomException("반경 조회에는 latitude, longitude, radiusMeters가 모두 필요합니다.",
+                    ErrorCode.MISSING_PARAMETER);
+        }
+        if (radiusMeters != null && radiusMeters <= 0) {
+            throw new CustomException("radiusMeters는 0보다 커야 합니다.", ErrorCode.INVALID_PARAMETER);
+        }
+    }
+
+    private void validateBoundsParameters(
+            BigDecimal swLat,
+            BigDecimal swLng,
+            BigDecimal neLat,
+            BigDecimal neLng) {
+        boolean hasAnyBoundsParameter =
+                swLat != null || swLng != null || neLat != null || neLng != null;
+        boolean hasAllBoundsParameters =
+                swLat != null && swLng != null && neLat != null && neLng != null;
+
+        if (hasAnyBoundsParameter && !hasAllBoundsParameters) {
+            throw new CustomException("지도 영역 조회에는 swLat, swLng, neLat, neLng가 모두 필요합니다.",
+                    ErrorCode.MISSING_PARAMETER);
+        }
+    }
+
+    private void validateRiskRange(BigDecimal riskMin, BigDecimal riskMax) {
+        if (riskMin != null && riskMax != null && riskMin.compareTo(riskMax) > 0) {
+            throw new CustomException("riskMin은 riskMax보다 클 수 없습니다.", ErrorCode.INVALID_PARAMETER);
+        }
+    }
+
+    private void validateBoundsRange(
+            BigDecimal swLat,
+            BigDecimal swLng,
+            BigDecimal neLat,
+            BigDecimal neLng) {
+        if (swLat == null || swLng == null || neLat == null || neLng == null) {
+            return;
+        }
+        if (swLat.compareTo(neLat) > 0 || swLng.compareTo(neLng) > 0) {
+            throw new CustomException("지도 영역 좌표 범위가 올바르지 않습니다.", ErrorCode.INVALID_PARAMETER);
+        }
+    }
+
+    // 이슈 그룹 상세 조회 파트
+    private Report findRepresentativeReport(List<Report> reports) {
+        return reports.stream()
+                .filter(report -> Boolean.TRUE.equals(report.getIsRepresentative()))
+                .findFirst()
+                .orElse(reports.get(0));
+    }
+
+    private void validateIssueAccessByAgencyType(User user, Report representativeReport) {
+        if (user.getRole() == UserRole.ADMIN) {
+            return;
+        }
+
+        List<Long> officerAgencyTypeIds = officerDepartmentRepository.findByUserId(user.getId())
+                .stream()
+                .map(officerDepartment -> officerDepartment.getDepartment().getAgencyType().getId())
+                .distinct()
+                .toList();
+
+        Long issueAgencyTypeId = representativeReport.getDepartment().getAgencyType().getId();
+
+        if (!officerAgencyTypeIds.contains(issueAgencyTypeId)) {
+            throw new CustomException(ErrorCode.FORBIDDEN.getMessage(), ErrorCode.FORBIDDEN);
+        }
+    }
+}

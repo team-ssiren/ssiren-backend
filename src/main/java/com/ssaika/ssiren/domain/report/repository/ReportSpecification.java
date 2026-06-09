@@ -5,9 +5,11 @@ import com.ssaika.ssiren.global.enums.IssueGroupStatus;
 import com.ssaika.ssiren.global.enums.ReportStatus;
 import com.ssaika.ssiren.global.enums.ReportVisibility;
 import jakarta.persistence.criteria.Expression;
+import org.springframework.data.jpa.domain.Specification;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import org.springframework.data.jpa.domain.Specification;
+import java.util.List;
 
 public class ReportSpecification {
 
@@ -194,5 +196,44 @@ public class ReportSpecification {
 
             return criteriaBuilder.lessThanOrEqualTo(distanceMeters, radiusMeters.doubleValue());
         };
+    }
+
+    /*
+    * Admin 조회 조건 부분
+    * */
+    public static Specification<Report> hasDepartment(Long departmentId) {
+        return (root, query, criteriaBuilder) -> departmentId == null
+                ? criteriaBuilder.conjunction()
+                : criteriaBuilder.equal(root.get("department").get("id"), departmentId);
+    }
+
+    public static Specification<Report> hasDepartmentIn(List<Long> departmentIds) {
+        return (root, query, criteriaBuilder) -> {
+            if (departmentIds == null) {
+                return criteriaBuilder.conjunction();
+            }
+            if (departmentIds.isEmpty()) {
+                return criteriaBuilder.disjunction();
+            }
+            return root.get("department").get("id").in(departmentIds);
+        };
+    }
+
+    public static Specification<Report> hasAgencyTypeIn(List<Long> agencyTypeIds) {
+        return (root, query, criteriaBuilder) -> {
+            if (agencyTypeIds == null) {
+                return criteriaBuilder.conjunction();
+            }
+            if (agencyTypeIds.isEmpty()) {
+                return criteriaBuilder.disjunction();
+            }
+            return root.get("department").get("agencyType").get("id").in(agencyTypeIds);
+        };
+    }
+
+    public static Specification<Report> isDeletedOnly(Boolean deletedOnly) {
+        return (root, query, criteriaBuilder) -> Boolean.TRUE.equals(deletedOnly)
+                ? criteriaBuilder.isTrue(root.get("isDeleted"))
+                : criteriaBuilder.conjunction();
     }
 }
