@@ -26,7 +26,7 @@ public record ChatbotReportContext(
             report.getTitle(),
             resolveSummary(report, objectMapper),
             report.getCategory().getCategoryName(),
-            report.getRoadAddress(),
+            resolveAddress(report),
             report.getIssueGroup().getRiskScore(),
             distanceMeters,
             report.getIssueGroup().getRecentReportedAt()
@@ -35,6 +35,9 @@ public record ChatbotReportContext(
 
     private static String resolveSummary(Report report, ObjectMapper objectMapper) {
         try {
+            if (report.getContents() == null || report.getContents().isBlank()) {
+                return report.getTitle();
+            }
             JsonNode contents = objectMapper.readTree(report.getContents());
             JsonNode summary = contents.get("summary");
             if (summary != null && !summary.isNull()) {
@@ -45,5 +48,13 @@ public record ChatbotReportContext(
         }
 
         return report.getTitle();
+    }
+
+    private static String resolveAddress(Report report) {
+        if (report.getRoadAddress() != null && !report.getRoadAddress().isBlank()) {
+            return report.getRoadAddress();
+        }
+
+        return report.getJibunAddress();
     }
 }

@@ -19,12 +19,4 @@ public record ChatbotMessageResponse(
             chatbotMessage.getCreatedAt()
         );
     }
-
-    public static ChatbotMessageResponse of(
-        Long id,
-        ChatbotSenderType senderType,
-        String message,
-        LocalDateTime createdAt) {
-        return new ChatbotMessageResponse(id, senderType, message, createdAt);
-    }
 }

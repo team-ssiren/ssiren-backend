@@ -10,6 +10,8 @@ import com.ssaika.ssiren.domain.chatbot.service.ChatbotService;
 import com.ssaika.ssiren.global.dto.BaseResponse;
 import com.ssaika.ssiren.global.dto.PageResponseDto;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -52,7 +54,7 @@ public class ChatbotController {
     public ResponseEntity<BaseResponse<ChatbotMessageCursorResponse>> getChatbotMessages(
         @PathVariable Long sessionId,
         @RequestParam(required = false) Long cursor,
-        @RequestParam(defaultValue = "20") Integer size) {
+        @RequestParam(defaultValue = "20") @Min(1) @Max(100) Integer size) {
         ChatbotMessageCursorResponse response = chatbotService.getChatbotMessages(TEST_USER_ID,
             sessionId, cursor, size);
 

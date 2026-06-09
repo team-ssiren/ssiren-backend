@@ -23,6 +23,7 @@ import com.ssaika.ssiren.domain.chatbot.entity.ChatbotMessage;
 import com.ssaika.ssiren.domain.chatbot.entity.ChatbotSession;
 import com.ssaika.ssiren.domain.chatbot.repository.ChatbotMessageRepository;
 import com.ssaika.ssiren.domain.chatbot.repository.ChatbotSessionRepository;
+import com.ssaika.ssiren.domain.report.entity.IssueGroup;
 import com.ssaika.ssiren.domain.report.entity.Report;
 import com.ssaika.ssiren.domain.report.entity.ReportCategory;
 import com.ssaika.ssiren.domain.report.repository.ReportCategoryRepository;
@@ -39,23 +40,28 @@ import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
-import lombok.RequiredArgsConstructor;
+import java.util.function.Supplier;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 @Service
-@RequiredArgsConstructor
+@Slf4j
 @Transactional(readOnly = true)
 public class ChatbotService {
 
     private static final String NEW_CHAT_TITLE = "새 대화";
-    private static final String AI_FAILURE_MESSAGE = "현재 챗봇 응답을 생성할 수 없습니다.";
     private static final int HISTORY_SIZE = 10;
     private static final int CONTEXT_REPORT_SIZE = 5;
 
@@ -66,6 +72,45 @@ public class ChatbotService {
     private final ReportRepository reportRepository;
     private final UserRepository userRepository;
     private final ObjectMapper objectMapper;
+    private final PlatformTransactionManager transactionManager;
+
+    @Autowired
+    public ChatbotService(
+        ChatbotAiClient chatbotAiClient,
+        ChatbotMessageRepository chatbotMessageRepository,
+        ChatbotSessionRepository chatbotSessionRepository,
+        ReportCategoryRepository reportCategoryRepository,
+        ReportRepository reportRepository,
+        UserRepository userRepository,
+        ObjectMapper objectMapper,
+        PlatformTransactionManager transactionManager) {
+        this.chatbotAiClient = chatbotAiClient;
+        this.chatbotMessageRepository = chatbotMessageRepository;
+        this.chatbotSessionRepository = chatbotSessionRepository;
+        this.reportCategoryRepository = reportCategoryRepository;
+        this.reportRepository = reportRepository;
+        this.userRepository = userRepository;
+        this.objectMapper = objectMapper;
+        this.transactionManager = transactionManager;
+    }
+
+    public ChatbotService(
+        ChatbotAiClient chatbotAiClient,
+        ChatbotMessageRepository chatbotMessageRepository,
+        ChatbotSessionRepository chatbotSessionRepository,
+        ReportCategoryRepository reportCategoryRepository,
+        ReportRepository reportRepository,
+        UserRepository userRepository,
+        ObjectMapper objectMapper) {
+        this.chatbotAiClient = chatbotAiClient;
+        this.chatbotMessageRepository = chatbotMessageRepository;
+        this.chatbotSessionRepository = chatbotSessionRepository;
+        this.reportCategoryRepository = reportCategoryRepository;
+        this.reportRepository = reportRepository;
+        this.userRepository = userRepository;
+        this.objectMapper = objectMapper;
+        this.transactionManager = null;
+    }
 
     public Page<ChatbotSessionResponse> getMyChatbotSessions(Long userId, Pageable pageable) {
         userRepository.findById(userId)
@@ -92,11 +137,7 @@ public class ChatbotService {
 
     public ChatbotMessageCursorResponse getChatbotMessages(Long userId, Long sessionId, Long cursor,
         Integer size) {
-        chatbotSessionRepository.findByIdAndUser_Id(sessionId, userId)
-            .orElseThrow(() -> new CustomException(
-                ErrorCode.CHATBOT_SESSION_NOT_FOUND.getMessage(),
-                ErrorCode.CHATBOT_SESSION_NOT_FOUND
-            ));
+        getOwnedSession(userId, sessionId);
 
         int requestSize = size + 1;
         Pageable pageable = PageRequest.of(0, requestSize);
@@ -115,14 +156,7 @@ public class ChatbotService {
 
     @Transactional
     public void deleteChatbotSession(Long userId, Long sessionId) {
-        ChatbotSession session = chatbotSessionRepository.findById(sessionId)
-            .orElseThrow(() -> new CustomException(
-                ErrorCode.CHATBOT_SESSION_NOT_FOUND.getMessage(),
-                ErrorCode.CHATBOT_SESSION_NOT_FOUND
-            ));
-        if (!session.getUser().getId().equals(userId)) {
-            throw new CustomException(ErrorCode.FORBIDDEN.getMessage(), ErrorCode.FORBIDDEN);
-        }
+        ChatbotSession session = getOwnedSession(userId, sessionId);
 
         chatbotSessionRepository.delete(session);
     }
@@ -138,18 +172,41 @@ public class ChatbotService {
         return ChatbotSessionTitleUpdateResponse.from(session);
     }
 
-    @Transactional
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public ChatbotMessageSendResponse saveChatbotMessage(
         Long userId,
         Long sessionId,
         ChatbotMessageSendRequest request) {
+        ChatbotMessagePreparation preparation = executeReadTransaction(() -> {
+            getOwnedSession(userId, sessionId);
+            Long messageCount = chatbotMessageRepository.countBySession_Id(sessionId);
+            List<ChatbotHistoryMessage> history = getRecentHistory(sessionId);
+
+            return new ChatbotMessagePreparation(messageCount, history);
+        });
+        String botAnswer = resolveBotAnswer(userId, request, preparation.history())
+            .orElseThrow(() -> new CustomException(
+                ErrorCode.CHATBOT_AI_RESPONSE_FAILED.getMessage(),
+                ErrorCode.CHATBOT_AI_RESPONSE_FAILED
+            ));
+
+        return executeWriteTransaction(() -> saveMessages(
+            userId,
+            sessionId,
+            request,
+            botAnswer,
+            preparation.messageCount()
+        ));
+    }
+
+    private ChatbotMessageSendResponse saveMessages(
+        Long userId,
+        Long sessionId,
+        ChatbotMessageSendRequest request,
+        String botAnswer,
+        Long messageCount) {
         ChatbotSession session = getOwnedSession(userId, sessionId);
-        Long messageCount = chatbotMessageRepository.countBySession_Id(sessionId);
         LocalDateTime now = LocalDateTime.now();
-        List<ChatbotHistoryMessage> history = getRecentHistory(sessionId);
-        String botAnswer = resolveBotAnswer(userId, request, history)
-            .orElseThrow(() -> new CustomException(AI_FAILURE_MESSAGE,
-                ErrorCode.INTERNAL_SERVER_ERROR));
         ChatbotMessage userMessage = chatbotMessageRepository.save(ChatbotMessage.create(
             session,
             ChatbotSenderType.USER,
@@ -184,6 +241,25 @@ public class ChatbotService {
         }
 
         return session;
+    }
+
+    private <T> T executeReadTransaction(Supplier<T> supplier) {
+        if (transactionManager == null) {
+            return supplier.get();
+        }
+        TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
+        transactionTemplate.setReadOnly(true);
+
+        return Objects.requireNonNull(transactionTemplate.execute(status -> supplier.get()));
+    }
+
+    private <T> T executeWriteTransaction(Supplier<T> supplier) {
+        if (transactionManager == null) {
+            return supplier.get();
+        }
+        TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
+
+        return Objects.requireNonNull(transactionTemplate.execute(status -> supplier.get()));
     }
 
     private List<ChatbotHistoryMessage> getRecentHistory(Long sessionId) {
@@ -248,8 +324,10 @@ public class ChatbotService {
                 getMyReportContexts(userId),
                 null
             );
-            case ANSWER_DIRECT -> throw new CustomException(AI_FAILURE_MESSAGE,
-                ErrorCode.INTERNAL_SERVER_ERROR);
+            case ANSWER_DIRECT -> throw new CustomException(
+                ErrorCode.CHATBOT_AI_RESPONSE_FAILED.getMessage(),
+                ErrorCode.CHATBOT_AI_RESPONSE_FAILED
+            );
         };
     }
 
@@ -279,12 +357,7 @@ public class ChatbotService {
             .stream()
             .map(report -> ChatbotReportContext.of(
                 report,
-                calculateDistanceMeters(
-                    request.latitude(),
-                    request.longitude(),
-                    report.getIssueGroup().getGroupLatitude(),
-                    report.getIssueGroup().getGroupLongitude()
-                ),
+                calculateDistanceMeters(request, report),
                 objectMapper
             ))
             .toList();
@@ -303,6 +376,27 @@ public class ChatbotService {
             .toList();
     }
 
+    private BigDecimal calculateDistanceMeters(ChatbotMessageSendRequest request, Report report) {
+        IssueGroup issueGroup = report.getIssueGroup();
+        if (issueGroup == null
+            || issueGroup.getGroupLatitude() == null
+            || issueGroup.getGroupLongitude() == null) {
+            log.error("Invalid report context for chatbot. reportId={}, issueGroupId={}",
+                report.getId(), issueGroup == null ? null : issueGroup.getId());
+            throw new CustomException(
+                ErrorCode.CHATBOT_REPORT_CONTEXT_INVALID.getMessage(),
+                ErrorCode.CHATBOT_REPORT_CONTEXT_INVALID
+            );
+        }
+
+        return calculateDistanceMeters(
+            request.latitude(),
+            request.longitude(),
+            issueGroup.getGroupLatitude(),
+            issueGroup.getGroupLongitude()
+        );
+    }
+
     private BigDecimal calculateDistanceMeters(
         BigDecimal sourceLatitude,
         BigDecimal sourceLongitude,
@@ -319,5 +413,11 @@ public class ChatbotService {
         double distanceMeters = 6371000.0 * Math.acos(clampedCosineDistance);
 
         return BigDecimal.valueOf(distanceMeters).setScale(1, RoundingMode.HALF_UP);
+    }
+
+    private record ChatbotMessagePreparation(
+        Long messageCount,
+        List<ChatbotHistoryMessage> history
+    ) {
     }
 }

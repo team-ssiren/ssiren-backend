@@ -57,7 +57,9 @@ public enum ErrorCode {
     // ============================================================
     // * CHATBOT
     // ============================================================
-    CHATBOT_SESSION_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 세션입니다.");
+    CHATBOT_SESSION_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 세션입니다."),
+    CHATBOT_AI_RESPONSE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "현재 챗봇 응답을 생성할 수 없습니다."),
+    CHATBOT_REPORT_CONTEXT_INVALID(HttpStatus.INTERNAL_SERVER_ERROR, "챗봇 응답 생성을 위한 제보 데이터가 올바르지 않습니다.");
 
 
 
