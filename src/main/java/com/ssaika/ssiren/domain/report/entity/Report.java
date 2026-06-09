@@ -162,8 +162,7 @@ public class Report extends BaseTime {
     public void update(
         String title,
         String contents,
-        ReportVisibility visibility,
-        ReportCategory category) {
+        ReportVisibility visibility) {
         if (title != null) {
             this.title = title;
         }
@@ -173,9 +172,13 @@ public class Report extends BaseTime {
         if (visibility != null) {
             this.visibility = visibility;
         }
-        if (category != null) {
-            this.category = category;
-            this.department = category.getDepartment();
-        }
+    }
+
+    public void markRepresentative() {
+        this.isRepresentative = true;
+    }
+
+    public void unmarkRepresentative() {
+        this.isRepresentative = false;
     }
 }
