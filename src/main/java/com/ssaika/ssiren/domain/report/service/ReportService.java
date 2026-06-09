@@ -33,11 +33,14 @@ import com.ssaika.ssiren.domain.report.dto.response.ReportReactionResponse;
 import com.ssaika.ssiren.domain.report.entity.IssueGroup;
 import com.ssaika.ssiren.domain.report.entity.Report;
 import com.ssaika.ssiren.domain.report.entity.ReportCategory;
+import com.ssaika.ssiren.domain.report.entity.ReportCategoryMergeRule;
 import com.ssaika.ssiren.domain.report.entity.ReportImage;
 import com.ssaika.ssiren.domain.report.entity.ReportReactionLog;
 import com.ssaika.ssiren.domain.report.entity.ReportStatusHistory;
+import com.ssaika.ssiren.domain.report.repository.DuplicateReportCandidate;
 import com.ssaika.ssiren.domain.report.repository.ReportCategoryRepository;
 import com.ssaika.ssiren.domain.report.repository.IssueGroupRepository;
+import com.ssaika.ssiren.domain.report.repository.ReportCategoryMergeRuleRepository;
 import com.ssaika.ssiren.domain.report.repository.ReportImageRepository;
 import com.ssaika.ssiren.domain.report.repository.ReportReactionLogRepository;
 import com.ssaika.ssiren.domain.report.repository.ReportRepository;
@@ -59,6 +62,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeParseException;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -83,11 +87,13 @@ public class ReportService {
     private static final BigDecimal MAX_LONGITUDE = BigDecimal.valueOf(180);
     private static final int MAX_REPORT_DRAFT_IMAGE_COUNT = 5;
     private static final long MAX_REPORT_DRAFT_IMAGE_SIZE = 50 * 1024 * 1024;
+    private static final int REPORT_EMBEDDING_DIMENSION = 1024;
     private static final String ADDRESS_NOT_RESOLVED = "주소 확인 필요";
 
     private final ReportRepository reportRepository;
     private final IssueGroupRepository issueGroupRepository;
     private final ReportCategoryRepository reportCategoryRepository;
+    private final ReportCategoryMergeRuleRepository reportCategoryMergeRuleRepository;
     private final ReportImageRepository reportImageRepository;
     private final ReportStatusHistoryRepository reportStatusHistoryRepository;
     private final ReportReactionLogRepository reportReactionLogRepository;
@@ -191,6 +197,7 @@ public class ReportService {
             request.occurredAt(),
             request.riskScore(),
             request.visibility(),
+            toPgVector(request.embedding()),
             user,
             category,
             issueGroup,
@@ -200,6 +207,26 @@ public class ReportService {
         List<ReportImage> reportImages = uploadAndSaveReportImages(userId, report, images);
 
         return ReportCreateResponse.from(report, reportImages, issueGroup, objectMapper);
+    }
+
+    public List<DuplicateReportCandidate> findDuplicateReportCandidates(ReportCreateRequest request) {
+        validateReportCreateRequest(request, null);
+        if (request.embedding() == null || request.embedding().isEmpty()) {
+            return List.of();
+        }
+
+        ReportCategoryMergeRule mergeRule = reportCategoryMergeRuleRepository.findByCategory_Id(request.categoryId())
+            .orElseThrow(() -> new CustomException("카테고리 병합 기준을 찾을 수 없습니다.", ErrorCode.NOT_FOUND));
+
+        return reportRepository.findDuplicateCandidates(
+            request.categoryId(),
+            request.departmentId(),
+            request.latitude(),
+            request.longitude(),
+            toPgVector(request.embedding()),
+            mergeRule.getLinkRadiusMeters(),
+            mergeRule.getMinEmbeddingSimilarity()
+        );
     }
 
     public List<IssueResponse> getIssues(
@@ -698,6 +725,7 @@ public class ReportService {
         validateCoordinate("위도", request.latitude(), MIN_LATITUDE, MAX_LATITUDE);
         validateCoordinate("경도", request.longitude(), MIN_LONGITUDE, MAX_LONGITUDE);
         validateRiskScore(request.riskScore());
+        validateEmbedding(request.embedding());
         if (!request.contents().isObject()) {
             throw new CustomException("제보 본문은 JSON 객체여야 합니다.", ErrorCode.INVALID_FORMAT);
         }
@@ -713,6 +741,19 @@ public class ReportService {
     private void validateRiskScore(BigDecimal riskScore) {
         if (riskScore.compareTo(BigDecimal.ZERO) < 0 || riskScore.compareTo(BigDecimal.valueOf(100)) > 0) {
             throw new CustomException("위험 점수는 0부터 100 사이여야 합니다.", ErrorCode.INVALID_PARAMETER);
+        }
+    }
+
+    private void validateEmbedding(List<BigDecimal> embedding) {
+        if (embedding == null || embedding.isEmpty()) {
+            return;
+        }
+        if (embedding.size() != REPORT_EMBEDDING_DIMENSION) {
+            throw new CustomException("제보 임베딩은 1024차원이어야 합니다.", ErrorCode.INVALID_PARAMETER);
+        }
+        boolean hasNullValue = embedding.stream().anyMatch(value -> value == null);
+        if (hasNullValue) {
+            throw new CustomException("제보 임베딩 값은 null일 수 없습니다.", ErrorCode.INVALID_PARAMETER);
         }
     }
 
@@ -798,8 +839,19 @@ public class ReportService {
             userId,
             category.getId(),
             null,
-            category.getDepartment().getId()
+            category.getDepartment().getId(),
+            aiResponse.embedding()
         );
+    }
+
+    private String toPgVector(List<BigDecimal> embedding) {
+        if (embedding == null || embedding.isEmpty()) {
+            return null;
+        }
+
+        return embedding.stream()
+            .map(value -> String.format(Locale.ROOT, "%.10f", value))
+            .collect(Collectors.joining(",", "[", "]"));
     }
 
     private JsonNode resolveContents(

@@ -129,6 +129,7 @@ public class Report extends BaseTime {
         LocalDateTime occurredAt,
         BigDecimal riskScore,
         ReportVisibility visibility,
+        String embedding,
         User user,
         ReportCategory category,
         IssueGroup issueGroup,
@@ -147,6 +148,7 @@ public class Report extends BaseTime {
             .riskScore(riskScore)
             .status(ReportStatus.SUBMITTED)
             .visibility(visibility)
+            .embedding(embedding)
             .isDeleted(false)
             .isRepresentative(true)
             .user(user)

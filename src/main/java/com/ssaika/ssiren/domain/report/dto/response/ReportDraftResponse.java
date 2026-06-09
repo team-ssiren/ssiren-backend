@@ -5,6 +5,7 @@ import com.ssaika.ssiren.global.enums.ReportStatus;
 import com.ssaika.ssiren.global.enums.ReportVisibility;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 public record ReportDraftResponse(
     Long id,
@@ -28,6 +29,7 @@ public record ReportDraftResponse(
     Long userId,
     Long categoryId,
     Long issueGroupId,
-    Long departmentId
+    Long departmentId,
+    List<BigDecimal> embedding
 ) {
 }
