@@ -5,28 +5,15 @@ import com.ssaika.ssiren.domain.user.entity.User;
 import com.ssaika.ssiren.global.entity.BaseTime;
 import com.ssaika.ssiren.global.enums.ReportStatus;
 import com.ssaika.ssiren.global.enums.ReportVisibility;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import jakarta.persistence.*;
+import lombok.*;
 import org.hibernate.annotations.ColumnTransformer;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 import org.locationtech.jts.geom.Point;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Entity
 @Getter
@@ -180,5 +167,11 @@ public class Report extends BaseTime {
 
     public void unmarkRepresentative() {
         this.isRepresentative = false;
+    }
+
+    public ReportStatus updateStatus(ReportStatus status) {
+        ReportStatus previousStatus = this.status;
+        this.status = status;
+        return previousStatus;
     }
 }

@@ -54,4 +54,20 @@ public class ReportStatusHistory extends BaseTime {
     @JoinColumn(name = "user_id")
     @OnDelete(action = OnDeleteAction.SET_NULL)
     private User user;
+
+    public static ReportStatusHistory create(
+            ReportStatus previousStatus,
+            ReportStatus newStatus,
+            String reason,
+            Report report,
+            User user
+    ) {
+        return ReportStatusHistory.builder()
+                .previousStatus(previousStatus)
+                .newStatus(newStatus)
+                .reason(reason)
+                .report(report)
+                .user(user)
+                .build();
+    }
 }
