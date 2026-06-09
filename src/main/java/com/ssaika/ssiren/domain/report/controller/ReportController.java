@@ -61,9 +61,8 @@ public class ReportController {
         @AuthenticationPrincipal Long userId,
         @RequestParam("request") String requestJson,
         @RequestPart(value = "images", required = false) List<MultipartFile> images) {
-        // TODO: 로그인 완성 후 Spring Security 기반 인증 사용자 ID를 사용하도록 되돌린다.
         ReportCreateRequest request = parseReportCreateRequest(requestJson);
-        ReportCreateResponse response = reportService.createReport(TEST_USER_ID, request, images);
+        ReportCreateResponse response = reportService.createReport(userId, request, images);
 
         return ResponseEntity.ok(BaseResponse.success("제보 등록 성공", response));
     }
