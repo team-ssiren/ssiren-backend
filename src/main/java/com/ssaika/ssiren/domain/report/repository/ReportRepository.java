@@ -16,7 +16,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
-public interface ReportRepository extends JpaRepository<Report, Long>, JpaSpecificationExecutor<Report> {
+public interface ReportRepository extends JpaRepository<Report, Long>, JpaSpecificationExecutor<Report>, ReportAdminQueryRepository {
 
     @Override
     @EntityGraph(attributePaths = {
@@ -110,4 +110,14 @@ public interface ReportRepository extends JpaRepository<Report, Long>, JpaSpecif
       and r.isDeleted = false
     """)
     List<Report> findReportsForAdminStatusUpdate(@Param("issueGroupId") Long issueGroupId);
+
+    @EntityGraph(attributePaths = {
+            "user",
+            "category",
+            "category.parentCategory",
+            "issueGroup",
+            "department",
+            "department.agencyType"
+    })
+    List<Report> findByIssueGroup_IdIn(Collection<Long> issueGroupIds);
 }

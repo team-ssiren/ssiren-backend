@@ -1,8 +1,10 @@
 package com.ssaika.ssiren.domain.admin.controller;
 
+import com.ssaika.ssiren.domain.admin.dto.request.AdminIssueGroupMergeRequest;
 import com.ssaika.ssiren.domain.admin.dto.request.AdminIssueGroupStatusUpdateRequest;
 import com.ssaika.ssiren.domain.admin.dto.request.AdminIssueSearchRequest;
 import com.ssaika.ssiren.domain.admin.dto.response.AdminIssueDetailResponse;
+import com.ssaika.ssiren.domain.admin.dto.response.AdminIssueGroupMergeResponse;
 import com.ssaika.ssiren.domain.admin.dto.response.AdminIssueGroupStatusUpdateResponse;
 import com.ssaika.ssiren.domain.admin.dto.response.AdminIssueListResponse;
 import com.ssaika.ssiren.domain.admin.service.AdminMapService;
@@ -55,5 +57,17 @@ public class AdminController {
                 adminService.updateAdminIssueGroupStatus(userId, issueGroupId, request);
 
         return ResponseEntity.ok(BaseResponse.success("이슈 그룹 처리 상태 변경 성공", response));
+    }
+
+    @PatchMapping("/{issueGroupId}/merge")
+    public ResponseEntity<BaseResponse<AdminIssueGroupMergeResponse>> mergeAdminIssueGroup(
+            @AuthenticationPrincipal Long userId,
+            @PathVariable Long issueGroupId,
+            @Valid @RequestBody AdminIssueGroupMergeRequest request
+    ) {
+        AdminIssueGroupMergeResponse response =
+                adminService.mergeAdminIssueGroup(userId, issueGroupId, request);
+
+        return ResponseEntity.ok(BaseResponse.success("이슈 그룹 수동 병합 성공", response));
     }
 }
