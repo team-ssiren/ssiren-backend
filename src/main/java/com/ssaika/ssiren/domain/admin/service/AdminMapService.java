@@ -2,7 +2,6 @@ package com.ssaika.ssiren.domain.admin.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssaika.ssiren.domain.admin.dto.request.AdminIssueSearchRequest;
-import com.ssaika.ssiren.domain.admin.dto.request.AdminIssueSortType;
 import com.ssaika.ssiren.domain.admin.dto.response.AdminIssueDetailResponse;
 import com.ssaika.ssiren.domain.admin.dto.response.AdminIssueResponse;
 import com.ssaika.ssiren.domain.report.entity.IssueGroup;
@@ -110,9 +109,9 @@ public class AdminMapService {
                         request.myDepartmentOnly()
                 ));
 
-        List<Report> representativeReports = reportRepository.findAll(
+        List<Report> representativeReports = reportRepository.findAdminIssueRepresentatives(
                 specification,
-                resolveSort(request.resolvedSort())
+                request.resolvedSort()
         );
 
         if (representativeReports.isEmpty()) {
@@ -319,20 +318,6 @@ public class AdminMapService {
         if (swLat.compareTo(neLat) > 0 || swLng.compareTo(neLng) > 0) {
             throw new CustomException("지도 영역 좌표 범위가 올바르지 않습니다.", ErrorCode.INVALID_PARAMETER);
         }
-    }
-
-    private Sort resolveSort(AdminIssueSortType sortType) {
-        if (sortType == AdminIssueSortType.RISK_DESC) {
-            return Sort.by(
-                    Sort.Order.desc("issueGroup.riskScore"),
-                    Sort.Order.desc("issueGroup.recentReportedAt")
-            );
-        }
-
-        return Sort.by(
-                Sort.Order.desc("issueGroup.recentReportedAt"),
-                Sort.Order.desc("id")
-        );
     }
 
     // 이슈 그룹 상세 조회 파트
