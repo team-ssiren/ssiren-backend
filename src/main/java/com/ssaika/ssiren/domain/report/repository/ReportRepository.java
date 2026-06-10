@@ -120,4 +120,14 @@ public interface ReportRepository extends JpaRepository<Report, Long>, JpaSpecif
             "department.agencyType"
     })
     List<Report> findByIssueGroup_IdIn(Collection<Long> issueGroupIds);
+
+    @EntityGraph(attributePaths = {
+            "user",
+            "category",
+            "category.parentCategory",
+            "issueGroup",
+            "department",
+            "department.agencyType"
+    })
+    List<Report> findByIssueGroup_Id(Long issueGroupId);
 }

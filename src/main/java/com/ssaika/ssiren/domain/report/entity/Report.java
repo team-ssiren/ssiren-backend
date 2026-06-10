@@ -178,4 +178,8 @@ public class Report extends BaseTime {
     public void changeIssueGroup(IssueGroup issueGroup) {
         this.issueGroup = issueGroup;
     }
+
+    public void changeDepartment(Department department) {
+        this.department = department;
+    }
 }
