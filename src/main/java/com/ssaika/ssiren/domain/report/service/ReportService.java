@@ -95,7 +95,7 @@ public class ReportService {
     private static final BigDecimal MAX_LONGITUDE = BigDecimal.valueOf(180);
     private static final int MAX_REPORT_DRAFT_IMAGE_COUNT = 5;
     private static final long MAX_REPORT_DRAFT_IMAGE_SIZE = 50 * 1024 * 1024;
-    private static final int REPORT_EMBEDDING_DIMENSION = 1024;
+    private static final int REPORT_EMBEDDING_DIMENSION = 1536;
     private static final double EARTH_RADIUS_METERS = 6_371_000;
     private static final String ADDRESS_NOT_RESOLVED = "주소 확인 필요";
     private static final String INSUFFICIENT_CATEGORY_CODE = "INSUFFICIENT";
@@ -1096,7 +1096,7 @@ public class ReportService {
             return;
         }
         if (embedding.size() != REPORT_EMBEDDING_DIMENSION) {
-            throw new CustomException("제보 임베딩은 1024차원이어야 합니다.", ErrorCode.INVALID_PARAMETER);
+            throw new CustomException("제보 임베딩은 1536차원이어야 합니다.", ErrorCode.INVALID_PARAMETER);
         }
         boolean hasNullValue = embedding.stream().anyMatch(value -> value == null);
         if (hasNullValue) {
