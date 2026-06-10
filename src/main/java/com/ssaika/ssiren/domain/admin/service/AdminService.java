@@ -192,29 +192,62 @@ public class AdminService {
             ReportStatus newStatus,
             String reason
     ) {
-        notificationService.sendPushToUser(
-                report.getUser().getId(),
-                "제보 처리 상태가 변경되었습니다.",
-                buildReportStatusChangedPushBody(newStatus),
-                Map.of(
-                        "type", NotificationType.REPORT_STATUS_CHANGED.name(),
-                        "issueGroupId", String.valueOf(issueGroup.getId()),
-                        "reportId", String.valueOf(report.getId()),
-                        "previousStatus", previousStatus.name(),
-                        "newStatus", newStatus.name(),
-                        "reason", reason
-                )
-        );
+        try {
+            notificationService.sendPushToUser(
+                    report.getUser().getId(),
+                    buildReportStatusChangedPushTitle(report),
+                    buildReportStatusChangedPushBody(report, previousStatus, newStatus),
+                    Map.of(
+                            "type", NotificationType.REPORT_STATUS_CHANGED.name(),
+                            "issueGroupId", String.valueOf(issueGroup.getId()),
+                            "reportId", String.valueOf(report.getId()),
+                            "previousStatus", previousStatus.name(),
+                            "newStatus", newStatus.name(),
+                            "previousStatusLabel", toReportStatusLabel(previousStatus),
+                            "newStatusLabel", toReportStatusLabel(newStatus),
+                            "reportTitle", report.getTitle(),
+                            "reason", reason
+                    )
+            );
+        } catch (RuntimeException e) {
+            log.warn(
+                    "Failed to send report status changed push. reportId={}, userId={}, previousStatus={}, newStatus={}",
+                    report.getId(),
+                    report.getUser().getId(),
+                    previousStatus,
+                    newStatus,
+                    e
+            );
+        }
     }
 
-    private String buildReportStatusChangedPushBody(ReportStatus status) {
+    private String buildReportStatusChangedPushTitle(Report report) {
+        return report.getUser().getNickname() + "님! 제보 상태가 변경됐어요.";
+    }
+
+    private String buildReportStatusChangedPushBody(
+            Report report,
+            ReportStatus previousStatus,
+            ReportStatus newStatus
+    ) {
+        return "'%s' 제보가 %s에서 %s로 변경됐어요."
+                .formatted(
+                        report.getTitle(),
+                        toReportStatusLabel(previousStatus),
+                        toReportStatusLabel(newStatus)
+                );
+    }
+
+    private String toReportStatusLabel(ReportStatus status) {
         return switch (status) {
-            case RECEIVED -> "제보가 접수되었습니다.";
-            case CHECKING -> "제보 내용을 확인 중입니다.";
-            case IN_PROGRESS -> "제보 처리가 진행 중입니다.";
-            case COMPLETED -> "제보 처리가 완료되었습니다.";
-            case REJECTED -> "제보가 반려되었습니다.";
-            default -> "제보 처리 상태가 변경되었습니다.";
+            case SUBMITTED -> "접수 전";
+            case RECEIVED -> "접수 완료";
+            case CHECKING -> "확인 중";
+            case IN_PROGRESS -> "처리 중";
+            case COMPLETED -> "처리 완료";
+            case REJECTED -> "반려";
+            case TRANSFERRED -> "이관";
+            case MERGED -> "병합";
         };
     }
 }
