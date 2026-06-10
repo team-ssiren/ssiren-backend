@@ -174,4 +174,8 @@ public class Report extends BaseTime {
         this.status = status;
         return previousStatus;
     }
+
+    public void changeIssueGroup(IssueGroup issueGroup) {
+        this.issueGroup = issueGroup;
+    }
 }

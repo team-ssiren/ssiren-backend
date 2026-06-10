@@ -110,4 +110,14 @@ public interface ReportRepository extends JpaRepository<Report, Long>, JpaSpecif
       and r.isDeleted = false
     """)
     List<Report> findReportsForAdminStatusUpdate(@Param("issueGroupId") Long issueGroupId);
+
+    @EntityGraph(attributePaths = {
+            "user",
+            "category",
+            "category.parentCategory",
+            "issueGroup",
+            "department",
+            "department.agencyType"
+    })
+    List<Report> findByIssueGroup_IdIn(Collection<Long> issueGroupIds);
 }

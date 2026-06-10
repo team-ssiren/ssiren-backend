@@ -15,62 +15,19 @@ import com.ssaika.ssiren.domain.report.dto.request.MyReportUpdateRequest;
 import com.ssaika.ssiren.domain.report.dto.request.ReportCreateRequest;
 import com.ssaika.ssiren.domain.report.dto.request.ReportDraftRequest;
 import com.ssaika.ssiren.domain.report.dto.request.ReportReactionRequest;
-import com.ssaika.ssiren.domain.report.dto.response.IssueDetailResponse;
-import com.ssaika.ssiren.domain.report.dto.response.IssueResponse;
-import com.ssaika.ssiren.domain.report.dto.response.MyReportDeleteResponse;
-import com.ssaika.ssiren.domain.report.dto.response.MyReportDetailResponse;
-import com.ssaika.ssiren.domain.report.dto.response.MyReportResponse;
-import com.ssaika.ssiren.domain.report.dto.response.MyReportUpdateResponse;
-import com.ssaika.ssiren.domain.report.dto.response.ReportAgencyTypeResponse;
-import com.ssaika.ssiren.domain.report.dto.response.ReportAiAnalysisResponse;
-import com.ssaika.ssiren.domain.report.dto.response.ReportCategoryResponse;
-import com.ssaika.ssiren.domain.report.dto.response.ReportCreateResponse;
-import com.ssaika.ssiren.domain.report.dto.response.ReportDepartmentResponse;
-import com.ssaika.ssiren.domain.report.dto.response.ReportDraftCreateResponse;
-import com.ssaika.ssiren.domain.report.dto.response.ReportDraftResponse;
-import com.ssaika.ssiren.domain.report.dto.response.ReportListResponse;
-import com.ssaika.ssiren.domain.report.dto.response.ReportReactionResponse;
-import com.ssaika.ssiren.domain.report.entity.IssueGroup;
-import com.ssaika.ssiren.domain.report.entity.Report;
-import com.ssaika.ssiren.domain.report.entity.ReportCategory;
-import com.ssaika.ssiren.domain.report.entity.ReportCategoryMergeRule;
-import com.ssaika.ssiren.domain.report.entity.ReportImage;
-import com.ssaika.ssiren.domain.report.entity.ReportReactionLog;
-import com.ssaika.ssiren.domain.report.entity.ReportStatusHistory;
-import com.ssaika.ssiren.domain.report.repository.DuplicateReportCandidate;
-import com.ssaika.ssiren.domain.report.repository.ReportCategoryRepository;
-import com.ssaika.ssiren.domain.report.repository.IssueGroupRepository;
-import com.ssaika.ssiren.domain.report.repository.ReportCategoryMergeRuleRepository;
-import com.ssaika.ssiren.domain.report.repository.ReportImageRepository;
-import com.ssaika.ssiren.domain.report.repository.ReportReactionLogRepository;
-import com.ssaika.ssiren.domain.report.repository.ReportRepository;
-import com.ssaika.ssiren.domain.report.repository.ReportSpecification;
-import com.ssaika.ssiren.domain.report.repository.ReportStatusHistoryRepository;
+import com.ssaika.ssiren.domain.report.dto.response.*;
+import com.ssaika.ssiren.domain.report.entity.*;
+import com.ssaika.ssiren.domain.report.repository.*;
 import com.ssaika.ssiren.domain.user.entity.User;
 import com.ssaika.ssiren.domain.user.repository.UserRepository;
 import com.ssaika.ssiren.global.enums.IssueGroupStatus;
+import com.ssaika.ssiren.global.enums.ReportReactionType;
 import com.ssaika.ssiren.global.enums.ReportStatus;
 import com.ssaika.ssiren.global.enums.ReportVisibility;
-import com.ssaika.ssiren.global.enums.ReportReactionType;
 import com.ssaika.ssiren.global.exception.CustomException;
 import com.ssaika.ssiren.global.exception.ErrorCode;
 import com.ssaika.ssiren.global.util.ReportImageStorage;
 import com.ssaika.ssiren.global.util.ReportImageStorage.UploadedReportImage;
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.format.DateTimeParseException;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -82,6 +39,16 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.format.DateTimeParseException;
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -100,6 +67,7 @@ public class ReportService {
     private static final String ADDRESS_NOT_RESOLVED = "주소 확인 필요";
     private static final String INSUFFICIENT_CATEGORY_CODE = "INSUFFICIENT";
 
+    private final IssueGroupStatsService issueGroupStatsService;
     private final ReportRepository reportRepository;
     private final IssueGroupRepository issueGroupRepository;
     private final ReportCategoryRepository reportCategoryRepository;
@@ -386,94 +354,6 @@ public class ReportService {
         return BigDecimal.valueOf(EARTH_RADIUS_METERS * c).setScale(2, RoundingMode.HALF_UP);
     }
 
-    private void refreshIssueGroupByReports(IssueGroup issueGroup, List<Report> reports) {
-        Report representativeReport = normalizeRepresentativeReport(reports);
-        Coordinate center = calculateGroupCenter(reports);
-        issueGroup.refreshStats(
-            representativeReport.getTitle(),
-            resolveIssueGroupContent(parseReportContents(representativeReport)),
-            reports.size(),
-            center.latitude(),
-            center.longitude(),
-            calculateGroupDiameter(reports),
-            calculateMaxRiskScore(reports),
-            calculateRecentReportedAt(reports)
-        );
-    }
-
-    private Report normalizeRepresentativeReport(List<Report> reports) {
-        Report representativeReport = reports.stream()
-            .filter(report -> Boolean.TRUE.equals(report.getIsRepresentative()))
-            .max(Comparator.comparing(this::reportReportedAt))
-            .orElseGet(() -> reports.stream()
-                .max(Comparator.comparing(this::reportReportedAt))
-                .orElseThrow(() -> new CustomException("이슈 그룹 대표 제보를 찾을 수 없습니다.", ErrorCode.NOT_FOUND)));
-
-        for (Report report : reports) {
-            if (report.getId().equals(representativeReport.getId())) {
-                report.markRepresentative();
-                continue;
-            }
-            report.unmarkRepresentative();
-        }
-        return representativeReport;
-    }
-
-    private Coordinate calculateGroupCenter(List<Report> reports) {
-        BigDecimal latitudeSum = BigDecimal.ZERO;
-        BigDecimal longitudeSum = BigDecimal.ZERO;
-        for (Report report : reports) {
-            latitudeSum = latitudeSum.add(report.getLatitude());
-            longitudeSum = longitudeSum.add(report.getLongitude());
-        }
-
-        BigDecimal count = BigDecimal.valueOf(reports.size());
-        return new Coordinate(
-            latitudeSum.divide(count, 7, RoundingMode.HALF_UP),
-            longitudeSum.divide(count, 7, RoundingMode.HALF_UP)
-        );
-    }
-
-    private BigDecimal calculateGroupDiameter(List<Report> reports) {
-        if (reports.size() <= 1) {
-            return BigDecimal.ZERO;
-        }
-
-        BigDecimal maxDistance = BigDecimal.ZERO;
-        for (int i = 0; i < reports.size(); i++) {
-            for (int j = i + 1; j < reports.size(); j++) {
-                Report first = reports.get(i);
-                Report second = reports.get(j);
-                BigDecimal distance = calculateDistanceMeters(
-                    first.getLatitude(),
-                    first.getLongitude(),
-                    second.getLatitude(),
-                    second.getLongitude()
-                );
-                maxDistance = maxDistance.max(distance);
-            }
-        }
-        return maxDistance;
-    }
-
-    private BigDecimal calculateMaxRiskScore(List<Report> reports) {
-        return reports.stream()
-            .map(Report::getRiskScore)
-            .max(BigDecimal::compareTo)
-            .orElse(BigDecimal.ZERO);
-    }
-
-    private LocalDateTime calculateRecentReportedAt(List<Report> reports) {
-        return reports.stream()
-            .map(this::reportReportedAt)
-            .max(LocalDateTime::compareTo)
-            .orElse(LocalDateTime.now());
-    }
-
-    private LocalDateTime reportReportedAt(Report report) {
-        return report.getCreatedAt() == null ? report.getOccurredAt() : report.getCreatedAt();
-    }
-
     private Coordinate calculateGroupCenter(ReportCreateRequest request, List<Report> groupReports) {
         BigDecimal latitudeSum = request.latitude();
         BigDecimal longitudeSum = request.longitude();
@@ -719,7 +599,7 @@ public class ReportService {
             .toList();
 
         if (!remainingReports.isEmpty()) {
-            refreshIssueGroupByReports(issueGroup, remainingReports);
+            issueGroupStatsService.refreshIssueGroupByReports(issueGroup, remainingReports);
         }
         MyReportDeleteResponse response = MyReportDeleteResponse.from(
             report,
