@@ -448,7 +448,7 @@ public class DataInitializer implements ApplicationRunner {
     private String dummyEmbedding(String seedText) {
         int seed = Math.abs(seedText.hashCode());
         StringBuilder embedding = new StringBuilder("[");
-        for (int index = 0; index < 1024; index++) {
+        for (int index = 0; index < 1536; index++) {
             if (index > 0) {
                 embedding.append(',');
             }

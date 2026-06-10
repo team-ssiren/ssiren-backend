@@ -49,7 +49,7 @@ public class Report extends BaseTime {
     private Point location;
 
     @ColumnTransformer(write = "?::vector")
-    @Column(columnDefinition = "vector(1024)")
+    @Column(columnDefinition = "vector(1536)")
     private String embedding;
 
     @Column(name = "road_address", nullable = false)
