@@ -79,6 +79,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
 
 @Slf4j
@@ -96,6 +98,7 @@ public class ReportService {
     private static final int REPORT_EMBEDDING_DIMENSION = 1024;
     private static final double EARTH_RADIUS_METERS = 6_371_000;
     private static final String ADDRESS_NOT_RESOLVED = "주소 확인 필요";
+    private static final String INSUFFICIENT_CATEGORY_CODE = "INSUFFICIENT";
 
     private final ReportRepository reportRepository;
     private final IssueGroupRepository issueGroupRepository;
@@ -178,6 +181,7 @@ public class ReportService {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND.getMessage(), ErrorCode.USER_NOT_FOUND));
         ReportCategory category = getReportCategory(request.categoryId());
+        validateRegistrableCategory(category);
         Department department = getDepartment(request.departmentId());
         validateCategoryDepartment(category, department);
 
@@ -724,13 +728,13 @@ public class ReportService {
             objectMapper
         );
 
-        // TODO: R2 오브젝트 삭제 정책이 정해지면 report_images와 함께 실제 이미지도 정리한다.
         reportRepository.delete(report);
         reportRepository.flush();
         if (remainingReports.isEmpty()) {
             issueGroupRepository.delete(issueGroup);
             issueGroupRepository.flush();
         }
+        deleteReportImagesAfterCommit(reportImages);
 
         return response;
     }
@@ -784,6 +788,7 @@ public class ReportService {
 
         return reportCategoryRepository.findAllByOrderByIdAsc()
                 .stream()
+                .filter(category -> !INSUFFICIENT_CATEGORY_CODE.equals(category.getCategoryCode()))
                 .map(ReportCategoryResponse::from)
                 .toList();
     }
@@ -903,6 +908,12 @@ public class ReportService {
         }
     }
 
+    private void validateRegistrableCategory(ReportCategory category) {
+        if (INSUFFICIENT_CATEGORY_CODE.equals(category.getCategoryCode())) {
+            throw new CustomException(ErrorCode.REPORT_INSUFFICIENT.getMessage(), ErrorCode.REPORT_INSUFFICIENT);
+        }
+    }
+
     private String convertContents(JsonNode contents) {
         if (contents == null) {
             return null;
@@ -955,12 +966,56 @@ public class ReportService {
                 reportImages.add(ReportImage.create(uploadedImage.imageUrl(), sortOrder++, report));
             }
 
-            // TODO: DB 커밋 단계에서 실패하면 업로드된 R2 오브젝트가 남을 수 있어 추후 정리 작업이 필요하다.
-            return reportImageRepository.saveAll(reportImages);
+            List<ReportImage> savedReportImages = reportImageRepository.saveAll(reportImages);
+            deleteUploadedImagesAfterRollback(uploadedObjectKeys);
+            return savedReportImages;
         } catch (RuntimeException e) {
             uploadedObjectKeys.forEach(reportImageStorage::deleteQuietly);
             throw e;
         }
+    }
+
+    private void deleteReportImagesAfterCommit(List<ReportImage> reportImages) {
+        if (reportImages.isEmpty()) {
+            return;
+        }
+        runAfterCommit(() -> reportImages.stream()
+            .map(ReportImage::getImageUrl)
+            .forEach(reportImageStorage::deleteByImageUrlQuietly));
+    }
+
+    private void deleteUploadedImagesAfterRollback(List<String> uploadedObjectKeys) {
+        if (uploadedObjectKeys.isEmpty()) {
+            return;
+        }
+        runAfterRollback(() -> uploadedObjectKeys.forEach(reportImageStorage::deleteQuietly));
+    }
+
+    private void runAfterCommit(Runnable task) {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            task.run();
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                task.run();
+            }
+        });
+    }
+
+    private void runAfterRollback(Runnable task) {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCompletion(int status) {
+                if (status == STATUS_ROLLED_BACK) {
+                    task.run();
+                }
+            }
+        });
     }
 
     private Map<Long, List<ReportImage>> getReportImages(List<Report> reports) {

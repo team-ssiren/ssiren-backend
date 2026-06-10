@@ -4,8 +4,10 @@ import com.ssaika.ssiren.global.config.R2Properties;
 import com.ssaika.ssiren.global.exception.CustomException;
 import com.ssaika.ssiren.global.exception.ErrorCode;
 import java.io.IOException;
+import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -48,6 +50,9 @@ public class ReportImageStorage {
     }
 
     public void deleteQuietly(String objectKey) {
+        if (isBlank(objectKey)) {
+            return;
+        }
         try {
             r2S3Client.deleteObject(builder -> builder
                 .bucket(r2Properties.bucket())
@@ -56,6 +61,10 @@ public class ReportImageStorage {
         } catch (RuntimeException e) {
             log.warn("Failed to delete uploaded report image. objectKey={}", objectKey);
         }
+    }
+
+    public void deleteByImageUrlQuietly(String imageUrl) {
+        resolveObjectKey(imageUrl).ifPresent(this::deleteQuietly);
     }
 
     private void validateConfigured() {
@@ -105,6 +114,24 @@ public class ReportImageStorage {
         String baseUrl = r2Properties.publicUrl().replaceAll("/+$", "");
         return baseUrl + "/" + URLEncoder.encode(objectKey, StandardCharsets.UTF_8)
             .replace("%2F", "/");
+    }
+
+    private Optional<String> resolveObjectKey(String imageUrl) {
+        if (isBlank(imageUrl) || isBlank(r2Properties.publicUrl())) {
+            return Optional.empty();
+        }
+
+        String baseUrl = r2Properties.publicUrl().replaceAll("/+$", "");
+        String prefix = baseUrl + "/";
+        if (!imageUrl.startsWith(prefix)) {
+            return Optional.empty();
+        }
+
+        String encodedObjectKey = imageUrl.substring(prefix.length());
+        if (encodedObjectKey.isBlank()) {
+            return Optional.empty();
+        }
+        return Optional.of(URLDecoder.decode(encodedObjectKey, StandardCharsets.UTF_8));
     }
 
     private boolean isBlank(String value) {

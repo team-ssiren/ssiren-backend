@@ -67,7 +67,8 @@ VALUES
     (19, 'SUSPICIOUS', '수상한 상황', 7, 5),
     (20, 'HOMELESS', '노숙', 8, 6),
     (21, 'FIRE_EMERGENCY', '화재/응급', 9, 7),
-    (22, 'ETC_OTHER', '기타', 10, 8);
+    (22, 'ETC_OTHER', '기타', 10, 8),
+    (23, 'INSUFFICIENT', '제보 불성립', 10, 8);
 
 
 -- 카테고리별 중복 병합 기준
