@@ -1,6 +1,8 @@
 package com.ssaika.ssiren.domain.admin.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ssaika.ssiren.domain.admin.dto.request.AdminIssueSearchRequest;
+import com.ssaika.ssiren.domain.admin.dto.request.AdminIssueSortType;
 import com.ssaika.ssiren.domain.admin.dto.response.AdminIssueDetailResponse;
 import com.ssaika.ssiren.domain.admin.dto.response.AdminIssueResponse;
 import com.ssaika.ssiren.domain.report.entity.IssueGroup;
@@ -12,8 +14,6 @@ import com.ssaika.ssiren.domain.user.entity.OfficerDepartment;
 import com.ssaika.ssiren.domain.user.entity.User;
 import com.ssaika.ssiren.domain.user.repository.OfficerDepartmentRepository;
 import com.ssaika.ssiren.domain.user.repository.UserRepository;
-import com.ssaika.ssiren.global.enums.IssueGroupStatus;
-import com.ssaika.ssiren.global.enums.ReportStatus;
 import com.ssaika.ssiren.global.enums.UserRole;
 import com.ssaika.ssiren.global.exception.CustomException;
 import com.ssaika.ssiren.global.exception.ErrorCode;
@@ -49,82 +49,70 @@ public class AdminMapService {
 
     public List<AdminIssueResponse> getAdminIssues(
             Long userId,
-            BigDecimal latitude,
-            BigDecimal longitude,
-            Integer radiusMeters,
-            BigDecimal swLat,
-            BigDecimal swLng,
-            BigDecimal neLat,
-            BigDecimal neLng,
-            Long categoryId,
-            Long agencyTypeId,
-            Long departmentId,
-            Boolean myDepartmentOnly,
-            Boolean deletedOnly,
-            IssueGroupStatus status,
-            ReportStatus reportStatus,
-            BigDecimal riskMin,
-            BigDecimal riskMax,
-            String from,
-            String to) {
+            AdminIssueSearchRequest request
+    ) {
         validateAuthenticatedUser(userId);
-        validateRadiusParameters(latitude, longitude, radiusMeters);
-        validateBoundsParameters(swLat, swLng, neLat, neLng);
-        validateRiskRange(riskMin, riskMax);
-        validateBoundsRange(swLat, swLng, neLat, neLng);
-        LocalDateTime fromDateTime = parseFromDateTime(from);
-        LocalDateTime toDateTime = parseToDateTime(to);
+        validateRadiusParameters(request.latitude(), request.longitude(), request.radiusMeters());
+        validateBoundsParameters(request.swLat(), request.swLng(), request.neLat(), request.neLng());
+        validateRiskRange(request.riskMin(), request.riskMax());
+        validateBoundsRange(request.swLat(), request.swLng(), request.neLat(), request.neLng());
+
+        LocalDateTime fromDateTime = parseFromDateTime(request.from());
+        LocalDateTime toDateTime = parseToDateTime(request.to());
         validateDateRange(fromDateTime, toDateTime);
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND.getMessage(),
                         ErrorCode.USER_NOT_FOUND));
 
-        validateAdminOrOfficer(user);
+        validateOfficer(user);
 
         log.info(
-                "Get admin issues. userId={}, role={}, latitude={}, longitude={}, "
-                        + "radiusMeters={}, swLat={}, swLng={}, neLat={}, neLng={}, categoryId={}, "
-                        + "agencyTypeId={}, departmentId={}, myDepartmentOnly={}, deletedOnly={}, status={}, "
-                        + "reportStatus={}, riskMin={}, riskMax={}, from={}, to={}",
+                "Get officer issues. userId={}, role={}, keyword={}, sort={}, reportStatus={}, "
+                        + "status={}, categoryId={}, agencyTypeId={}, departmentId={}, myDepartmentOnly={}",
                 userId,
                 user.getRole(),
-                latitude,
-                longitude,
-                radiusMeters,
-                swLat,
-                swLng,
-                neLat,
-                neLng,
-                categoryId,
-                agencyTypeId,
-                departmentId,
-                myDepartmentOnly,
-                deletedOnly,
-                status,
-                reportStatus,
-                riskMin,
-                riskMax,
-                fromDateTime,
-                toDateTime
+                request.keyword(),
+                request.resolvedSort(),
+                request.reportStatus(),
+                request.status(),
+                request.categoryId(),
+                request.agencyTypeId(),
+                request.departmentId(),
+                request.myDepartmentOnly()
         );
 
         Specification<Report> specification = ReportSpecification.isRepresentative()
-                .and(ReportSpecification.isDeletedOnly(deletedOnly))
-                .and(ReportSpecification.hasCategory(categoryId))
-                .and(ReportSpecification.hasIssueGroupStatus(status))
-                .and(ReportSpecification.hasStatus(reportStatus))
-                .and(ReportSpecification.issueGroupRiskScoreFrom(riskMin))
-                .and(ReportSpecification.issueGroupRiskScoreTo(riskMax))
+                .and(ReportSpecification.isDeletedOnly(request.deletedOnly()))
+                .and(ReportSpecification.hasKeyword(request.keyword()))
+                .and(ReportSpecification.hasCategory(request.categoryId()))
+                .and(ReportSpecification.hasIssueGroupStatus(request.status()))
+                .and(ReportSpecification.hasStatus(request.reportStatus()))
+                .and(ReportSpecification.issueGroupRiskScoreFrom(request.riskMin()))
+                .and(ReportSpecification.issueGroupRiskScoreTo(request.riskMax()))
                 .and(ReportSpecification.recentReportedAtFrom(fromDateTime))
                 .and(ReportSpecification.recentReportedAtTo(toDateTime))
-                .and(ReportSpecification.issueGroupInBounds(swLat, swLng, neLat, neLng))
-                .and(ReportSpecification.issueGroupWithinRadius(latitude, longitude, radiusMeters))
-                .and(resolveJurisdictionSpecification(user, agencyTypeId, departmentId, myDepartmentOnly));
+                .and(ReportSpecification.issueGroupInBounds(
+                        request.swLat(),
+                        request.swLng(),
+                        request.neLat(),
+                        request.neLng()
+                ))
+                .and(ReportSpecification.issueGroupWithinRadius(
+                        request.latitude(),
+                        request.longitude(),
+                        request.radiusMeters()
+                ))
+                .and(resolveJurisdictionSpecification(
+                        user,
+                        request.agencyTypeId(),
+                        request.departmentId(),
+                        request.myDepartmentOnly()
+                ));
 
         List<Report> representativeReports = reportRepository.findAll(
                 specification,
-                Sort.by(Sort.Direction.DESC, "issueGroup.riskScore")
+                resolveSort(request.resolvedSort())
         );
 
         if (representativeReports.isEmpty()) {
@@ -244,7 +232,7 @@ public class AdminMapService {
         }
     }
 
-    private void validateAdminOrOfficer(User user) {
+    private void validateOfficer(User user) {
         if (user.getRole() != UserRole.OFFICER) {
             throw new CustomException(ErrorCode.FORBIDDEN.getMessage(), ErrorCode.FORBIDDEN);
         }
@@ -333,6 +321,20 @@ public class AdminMapService {
         }
     }
 
+    private Sort resolveSort(AdminIssueSortType sortType) {
+        if (sortType == AdminIssueSortType.RISK_DESC) {
+            return Sort.by(
+                    Sort.Order.desc("issueGroup.riskScore"),
+                    Sort.Order.desc("issueGroup.recentReportedAt")
+            );
+        }
+
+        return Sort.by(
+                Sort.Order.desc("issueGroup.recentReportedAt"),
+                Sort.Order.desc("id")
+        );
+    }
+
     // 이슈 그룹 상세 조회 파트
     private Report findRepresentativeReport(List<Report> reports) {
         return reports.stream()
@@ -355,9 +357,4 @@ public class AdminMapService {
         }
     }
 
-    private void validateOfficer(User user) {
-        if (user.getRole() != UserRole.OFFICER) {
-            throw new CustomException(ErrorCode.FORBIDDEN.getMessage(), ErrorCode.FORBIDDEN);
-        }
-    }
 }

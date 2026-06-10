@@ -10,6 +10,7 @@ import org.springframework.data.jpa.domain.Specification;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Locale;
 
 public class ReportSpecification {
 
@@ -235,5 +236,32 @@ public class ReportSpecification {
         return (root, query, criteriaBuilder) -> Boolean.TRUE.equals(deletedOnly)
                 ? criteriaBuilder.isTrue(root.get("isDeleted"))
                 : criteriaBuilder.conjunction();
+    }
+
+    public static Specification<Report> hasKeyword(String keyword) {
+        return (root, query, criteriaBuilder) -> {
+            if (keyword == null || keyword.isBlank()) {
+                return criteriaBuilder.conjunction();
+            }
+
+            String likeKeyword = "%" + keyword.trim().toLowerCase(Locale.ROOT) + "%";
+
+            return criteriaBuilder.or(
+                    criteriaBuilder.like(criteriaBuilder.lower(root.get("title")), likeKeyword),
+                    criteriaBuilder.like(criteriaBuilder.lower(root.get("issueGroup").get("title")), likeKeyword),
+                    criteriaBuilder.like(criteriaBuilder.lower(root.get("roadAddress")), likeKeyword),
+                    criteriaBuilder.like(criteriaBuilder.lower(root.get("jibunAddress")), likeKeyword),
+                    criteriaBuilder.like(criteriaBuilder.lower(root.get("sido")), likeKeyword),
+                    criteriaBuilder.like(criteriaBuilder.lower(root.get("sigungu")), likeKeyword),
+                    criteriaBuilder.like(criteriaBuilder.lower(root.get("eupmyeondong")), likeKeyword),
+                    criteriaBuilder.like(
+                            criteriaBuilder.concat(
+                                    criteriaBuilder.literal("#"),
+                                    root.get("id").as(String.class)
+                            ),
+                            likeKeyword
+                    )
+            );
+        };
     }
 }
