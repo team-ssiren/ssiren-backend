@@ -1,22 +1,19 @@
 package com.ssaika.ssiren.domain.admin.controller;
 
 import com.ssaika.ssiren.domain.admin.dto.request.AdminIssueGroupStatusUpdateRequest;
+import com.ssaika.ssiren.domain.admin.dto.request.AdminIssueSearchRequest;
 import com.ssaika.ssiren.domain.admin.dto.response.AdminIssueDetailResponse;
 import com.ssaika.ssiren.domain.admin.dto.response.AdminIssueGroupStatusUpdateResponse;
 import com.ssaika.ssiren.domain.admin.dto.response.AdminIssueListResponse;
 import com.ssaika.ssiren.domain.admin.service.AdminMapService;
 import com.ssaika.ssiren.domain.admin.service.AdminService;
 import com.ssaika.ssiren.global.dto.BaseResponse;
-import com.ssaika.ssiren.global.enums.IssueGroupStatus;
-import com.ssaika.ssiren.global.enums.ReportStatus;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-
-import java.math.BigDecimal;
 
 @RestController
 @RequiredArgsConstructor
@@ -30,46 +27,10 @@ public class AdminController {
     @GetMapping
     public ResponseEntity<BaseResponse<AdminIssueListResponse>> getAdminIssues(
             @AuthenticationPrincipal Long userId,
-            @RequestParam(required = false) BigDecimal latitude,
-            @RequestParam(required = false) BigDecimal longitude,
-            @RequestParam(required = false) Integer radiusMeters,
-            @RequestParam(required = false) BigDecimal swLat,
-            @RequestParam(required = false) BigDecimal swLng,
-            @RequestParam(required = false) BigDecimal neLat,
-            @RequestParam(required = false) BigDecimal neLng,
-            @RequestParam(required = false) Long categoryId,
-            @RequestParam(required = false) Long agencyTypeId,
-            @RequestParam(required = false) Long departmentId,
-            @RequestParam(required = false) Boolean myDepartmentOnly,
-            @RequestParam(required = false) Boolean deletedOnly,
-            @RequestParam(required = false) IssueGroupStatus status,
-            @RequestParam(required = false) ReportStatus reportStatus,
-            @RequestParam(required = false) BigDecimal riskMin,
-            @RequestParam(required = false) BigDecimal riskMax,
-            @RequestParam(required = false) String from,
-            @RequestParam(required = false) String to) {
+            @ModelAttribute AdminIssueSearchRequest request
+    ) {
         AdminIssueListResponse response = AdminIssueListResponse.from(
-                adminMapService.getAdminIssues(
-                        userId,
-                        latitude,
-                        longitude,
-                        radiusMeters,
-                        swLat,
-                        swLng,
-                        neLat,
-                        neLng,
-                        categoryId,
-                        agencyTypeId,
-                        departmentId,
-                        myDepartmentOnly,
-                        deletedOnly,
-                        status,
-                        reportStatus,
-                        riskMin,
-                        riskMax,
-                        from,
-                        to
-                )
+                adminMapService.getAdminIssues(userId, request)
         );
 
         return ResponseEntity.ok(BaseResponse.success("관리자 지도 이슈 그룹 조회 성공", response));
