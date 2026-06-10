@@ -38,6 +38,7 @@ public class SecurityConfig {
                 .dispatcherTypeMatchers(DispatcherType.ASYNC, DispatcherType.ERROR).permitAll()
                 .requestMatchers("/api/v1/auth/login").permitAll()
                 .requestMatchers("/api/v1/auth/token/refresh").permitAll()
+                    .requestMatchers("/api/v1/test/auth/**").permitAll()
                 .requestMatchers("/api/v1/auth/logout").authenticated()
                 .requestMatchers("/api/v1/reports").authenticated()
                 .requestMatchers("/api/v1/reports/**").authenticated()

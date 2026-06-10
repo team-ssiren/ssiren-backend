@@ -162,9 +162,9 @@ public class AdminMapService {
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND.getMessage(),
                         ErrorCode.USER_NOT_FOUND));
 
-        validateAdminOrOfficer(user);
+        validateOfficer(user);
 
-        log.info("Get admin issue detail. userId={}, role={}, issueGroupId={}",
+        log.info("Get officer issue detail. userId={}, role={}, issueGroupId={}",
                 userId, user.getRole(), issueGroupId);
 
         IssueGroup issueGroup = issueGroupRepository.findById(issueGroupId)
@@ -214,11 +214,6 @@ public class AdminMapService {
             Long agencyTypeId,
             Long departmentId,
             Boolean myDepartmentOnly) {
-        if (user.getRole() == UserRole.ADMIN) {
-            return ReportSpecification.hasAgencyType(agencyTypeId)
-                    .and(ReportSpecification.hasDepartment(departmentId));
-        }
-
         List<OfficerDepartment> officerDepartments =
                 officerDepartmentRepository.findByUserId(user.getId());
         List<Long> departmentIds = officerDepartments.stream()
@@ -229,6 +224,10 @@ public class AdminMapService {
                 .map(officerDepartment -> officerDepartment.getDepartment().getAgencyType().getId())
                 .distinct()
                 .toList();
+
+        if (departmentIds.isEmpty() || agencyTypeIds.isEmpty()) {
+            return (root, query, criteriaBuilder) -> criteriaBuilder.disjunction();
+        }
 
         if (Boolean.TRUE.equals(myDepartmentOnly)) {
             return ReportSpecification.hasDepartmentIn(departmentIds)
@@ -246,7 +245,7 @@ public class AdminMapService {
     }
 
     private void validateAdminOrOfficer(User user) {
-        if (user.getRole() != UserRole.ADMIN && user.getRole() != UserRole.OFFICER) {
+        if (user.getRole() != UserRole.OFFICER) {
             throw new CustomException(ErrorCode.FORBIDDEN.getMessage(), ErrorCode.FORBIDDEN);
         }
     }
@@ -343,10 +342,6 @@ public class AdminMapService {
     }
 
     private void validateIssueAccessByAgencyType(User user, Report representativeReport) {
-        if (user.getRole() == UserRole.ADMIN) {
-            return;
-        }
-
         List<Long> officerAgencyTypeIds = officerDepartmentRepository.findByUserId(user.getId())
                 .stream()
                 .map(officerDepartment -> officerDepartment.getDepartment().getAgencyType().getId())
@@ -356,6 +351,12 @@ public class AdminMapService {
         Long issueAgencyTypeId = representativeReport.getDepartment().getAgencyType().getId();
 
         if (!officerAgencyTypeIds.contains(issueAgencyTypeId)) {
+            throw new CustomException(ErrorCode.FORBIDDEN.getMessage(), ErrorCode.FORBIDDEN);
+        }
+    }
+
+    private void validateOfficer(User user) {
+        if (user.getRole() != UserRole.OFFICER) {
             throw new CustomException(ErrorCode.FORBIDDEN.getMessage(), ErrorCode.FORBIDDEN);
         }
     }
