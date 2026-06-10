@@ -96,6 +96,7 @@ public class ReportService {
     private static final int REPORT_EMBEDDING_DIMENSION = 1024;
     private static final double EARTH_RADIUS_METERS = 6_371_000;
     private static final String ADDRESS_NOT_RESOLVED = "주소 확인 필요";
+    private static final String INSUFFICIENT_CATEGORY_CODE = "INSUFFICIENT";
 
     private final ReportRepository reportRepository;
     private final IssueGroupRepository issueGroupRepository;
@@ -178,6 +179,7 @@ public class ReportService {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND.getMessage(), ErrorCode.USER_NOT_FOUND));
         ReportCategory category = getReportCategory(request.categoryId());
+        validateRegistrableCategory(category);
         Department department = getDepartment(request.departmentId());
         validateCategoryDepartment(category, department);
 
@@ -784,6 +786,7 @@ public class ReportService {
 
         return reportCategoryRepository.findAllByOrderByIdAsc()
                 .stream()
+                .filter(category -> !INSUFFICIENT_CATEGORY_CODE.equals(category.getCategoryCode()))
                 .map(ReportCategoryResponse::from)
                 .toList();
     }
@@ -900,6 +903,12 @@ public class ReportService {
     private void validateCategoryDepartment(ReportCategory category, Department department) {
         if (!category.getDepartment().getId().equals(department.getId())) {
             throw new CustomException("카테고리와 담당 부서가 일치하지 않습니다.", ErrorCode.INVALID_PARAMETER);
+        }
+    }
+
+    private void validateRegistrableCategory(ReportCategory category) {
+        if (INSUFFICIENT_CATEGORY_CODE.equals(category.getCategoryCode())) {
+            throw new CustomException(ErrorCode.REPORT_INSUFFICIENT.getMessage(), ErrorCode.REPORT_INSUFFICIENT);
         }
     }
 

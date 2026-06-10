@@ -69,6 +69,7 @@ public enum ErrorCode {
     // ============================================================
     // * REPORT
     // ============================================================
+    REPORT_INSUFFICIENT(HttpStatus.BAD_REQUEST, "제보로 성립하지 않아 등록할 수 없습니다."),
     REPORT_IMAGE_UPLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "제보 이미지 업로드에 실패했습니다.");
 
 

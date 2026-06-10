@@ -120,6 +120,7 @@ public class DataInitializer implements ApplicationRunner {
         List<ReportCategory> reportCategories = reportCategoryRepository.count() == 0
                 ? saveReportCategoryTemplate(departments)
                 : findAllSorted(reportCategoryRepository);
+        reportCategories = saveInsufficientCategoryIfNeeded(reportCategories, departments);
 
         saveReportCategoryMergeRulesIfNeeded(reportCategories);
 
@@ -151,10 +152,37 @@ public class DataInitializer implements ApplicationRunner {
                 reportCategory("SUSPICIOUS", "수상한 상황", departments.get(6), parents.get(4)),
                 reportCategory("HOMELESS", "노숙", departments.get(7), parents.get(5)),
                 reportCategory("FIRE_EMERGENCY", "화재/응급", departments.get(8), parents.get(6)),
-                reportCategory("ETC_OTHER", "기타", departments.get(9), parents.get(7))));
+                reportCategory("ETC_OTHER", "기타", departments.get(9), parents.get(7)),
+                reportCategory("INSUFFICIENT", "제보 불성립", departments.get(9), parents.get(7))));
 
         List<ReportCategory> categories = new ArrayList<>(parents);
         categories.addAll(children);
+        return categories;
+    }
+
+    private List<ReportCategory> saveInsufficientCategoryIfNeeded(
+            List<ReportCategory> reportCategories,
+            List<Department> departments) {
+        boolean exists = reportCategories.stream()
+                .anyMatch(category -> "INSUFFICIENT".equals(category.getCategoryCode()));
+        if (exists) {
+            return reportCategories;
+        }
+
+        ReportCategory parent = reportCategories.stream()
+                .filter(category -> "ETC".equals(category.getCategoryCode()))
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("Seed category not found: ETC"));
+        Department department = departments.stream()
+                .filter(value -> "민원실".equals(value.getName()))
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("Seed department not found: 민원실"));
+        ReportCategory insufficient = reportCategoryRepository.save(
+                reportCategory("INSUFFICIENT", "제보 불성립", department, parent));
+
+        List<ReportCategory> categories = new ArrayList<>(reportCategories);
+        categories.add(insufficient);
+        categories.sort(Comparator.comparing(ReportCategory::getId));
         return categories;
     }
 
