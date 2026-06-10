@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder(access = AccessLevel.PRIVATE)
-@Table(name = "issue_group_transfer_histories")
+@Table(name = "issue_group_transfer_requests")
 public class IssueGroupTransferHistory extends BaseTime {
 
     @Id

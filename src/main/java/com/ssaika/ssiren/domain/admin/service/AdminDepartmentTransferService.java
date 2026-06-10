@@ -1,12 +1,16 @@
 package com.ssaika.ssiren.domain.admin.service;
 
 import com.ssaika.ssiren.domain.admin.dto.request.AdminIssueGroupTransferCreateRequest;
-import com.ssaika.ssiren.domain.admin.dto.request.AdminIssueGroupTransferResponseRequest;
+import com.ssaika.ssiren.domain.admin.dto.request.AdminIssueGroupTransferDecisionRequest;
 import com.ssaika.ssiren.domain.admin.dto.response.AdminIssueGroupTransferHistoryListResponse;
 import com.ssaika.ssiren.domain.admin.dto.response.AdminIssueGroupTransferHistoryResponse;
 import com.ssaika.ssiren.domain.agency.entity.Department;
 import com.ssaika.ssiren.domain.agency.repository.DepartmentRepository;
-import com.ssaika.ssiren.domain.report.entity.*;
+import com.ssaika.ssiren.domain.report.entity.IssueGroup;
+import com.ssaika.ssiren.domain.report.entity.IssueGroupTransferHistory;
+import com.ssaika.ssiren.domain.report.entity.IssueGroupTransferHistoryStatus;
+import com.ssaika.ssiren.domain.report.entity.Report;
+import com.ssaika.ssiren.domain.report.entity.ReportStatusHistory;
 import com.ssaika.ssiren.domain.report.repository.IssueGroupRepository;
 import com.ssaika.ssiren.domain.report.repository.IssueGroupTransferHistoryRepository;
 import com.ssaika.ssiren.domain.report.repository.ReportRepository;
@@ -42,7 +46,7 @@ public class AdminDepartmentTransferService {
     private final ReportStatusHistoryRepository reportStatusHistoryRepository;
 
     @Transactional
-    public AdminIssueGroupTransferHistoryResponse createIssueGroupTransferHistory(
+    public AdminIssueGroupTransferHistoryResponse createIssueGroupTransferRequest(
             Long userId,
             Long issueGroupId,
             AdminIssueGroupTransferCreateRequest request
@@ -71,7 +75,7 @@ public class AdminDepartmentTransferService {
                 .orElseThrow(() -> new CustomException("이관 대상 부서를 찾을 수 없습니다.", ErrorCode.NOT_FOUND));
 
         validateDifferentDepartment(fromDepartment, targetDepartment);
-        validateNoPendingTransferHistory(issueGroupId);
+        validateNoPendingTransferRequest(issueGroupId);
 
         IssueGroupTransferHistory history = IssueGroupTransferHistory.create(
                 issueGroup,
@@ -98,7 +102,7 @@ public class AdminDepartmentTransferService {
         return AdminIssueGroupTransferHistoryResponse.of(savedHistory, reports.size());
     }
 
-    public AdminIssueGroupTransferHistoryListResponse getIncomingIssueGroupTransferHistories(Long userId) {
+    public AdminIssueGroupTransferHistoryListResponse getIncomingIssueGroupTransferRequests(Long userId) {
         validateAuthenticatedUser(userId);
 
         User user = userRepository.findById(userId)
@@ -121,10 +125,28 @@ public class AdminDepartmentTransferService {
     }
 
     @Transactional
-    public AdminIssueGroupTransferHistoryResponse acceptIssueGroupTransferHistory(
+    public AdminIssueGroupTransferHistoryResponse decideIssueGroupTransferRequest(
             Long userId,
-            Long transferHistoryId,
-            AdminIssueGroupTransferResponseRequest request
+            Long transferId,
+            AdminIssueGroupTransferDecisionRequest request
+    ) {
+        if (request.isAccepted()) {
+            return acceptIssueGroupTransferRequest(userId, transferId, request.responseReason());
+        }
+        if (request.isRejected()) {
+            return rejectIssueGroupTransferRequest(userId, transferId, request.responseReason());
+        }
+
+        throw new CustomException(
+                "이관 요청 응답 상태는 ACCEPTED 또는 REJECTED만 사용할 수 있습니다.",
+                ErrorCode.INVALID_PARAMETER
+        );
+    }
+
+    private AdminIssueGroupTransferHistoryResponse acceptIssueGroupTransferRequest(
+            Long userId,
+            Long transferId,
+            String responseReason
     ) {
         validateAuthenticatedUser(userId);
 
@@ -133,10 +155,10 @@ public class AdminDepartmentTransferService {
                         ErrorCode.USER_NOT_FOUND));
         validateOfficer(responseUser);
 
-        IssueGroupTransferHistory history = issueGroupTransferHistoryRepository.findWithDetailsById(transferHistoryId)
+        IssueGroupTransferHistory history = issueGroupTransferHistoryRepository.findWithDetailsById(transferId)
                 .orElseThrow(() -> new CustomException("이관 요청을 찾을 수 없습니다.", ErrorCode.NOT_FOUND));
 
-        validatePendingTransferHistory(history);
+        validatePendingTransferRequest(history);
         validateOfficerInDepartment(responseUser, history.getTargetDepartment().getId());
 
         List<Report> reports = reportRepository.findByIssueGroup_Id(history.getIssueGroup().getId());
@@ -153,23 +175,22 @@ public class AdminDepartmentTransferService {
             statusHistories.add(ReportStatusHistory.create(
                     ReportStatus.TRANSFERRED,
                     currentStatus,
-                    buildTransferAcceptReason(history.getTargetDepartment(), request.responseReason()),
+                    buildTransferAcceptReason(history.getTargetDepartment(), responseReason),
                     report,
                     responseUser
             ));
         }
 
-        history.accept(responseUser, request.responseReason());
+        history.accept(responseUser, responseReason);
         reportStatusHistoryRepository.saveAll(statusHistories);
 
         return AdminIssueGroupTransferHistoryResponse.of(history, reports.size());
     }
 
-    @Transactional
-    public AdminIssueGroupTransferHistoryResponse rejectIssueGroupTransferHistory(
+    private AdminIssueGroupTransferHistoryResponse rejectIssueGroupTransferRequest(
             Long userId,
-            Long transferHistoryId,
-            AdminIssueGroupTransferResponseRequest request
+            Long transferId,
+            String responseReason
     ) {
         validateAuthenticatedUser(userId);
 
@@ -178,10 +199,10 @@ public class AdminDepartmentTransferService {
                         ErrorCode.USER_NOT_FOUND));
         validateOfficer(responseUser);
 
-        IssueGroupTransferHistory history = issueGroupTransferHistoryRepository.findWithDetailsById(transferHistoryId)
+        IssueGroupTransferHistory history = issueGroupTransferHistoryRepository.findWithDetailsById(transferId)
                 .orElseThrow(() -> new CustomException("이관 요청을 찾을 수 없습니다.", ErrorCode.NOT_FOUND));
 
-        validatePendingTransferHistory(history);
+        validatePendingTransferRequest(history);
         validateOfficerInDepartment(responseUser, history.getTargetDepartment().getId());
 
         List<Report> reports = reportRepository.findByIssueGroup_Id(history.getIssueGroup().getId());
@@ -190,13 +211,13 @@ public class AdminDepartmentTransferService {
                 .map(report -> ReportStatusHistory.create(
                         ReportStatus.TRANSFERRED,
                         report.getStatus(),
-                        buildTransferRejectReason(request.responseReason()),
+                        buildTransferRejectReason(responseReason),
                         report,
                         responseUser
                 ))
                 .toList();
 
-        history.reject(responseUser, request.responseReason());
+        history.reject(responseUser, responseReason);
 
         if (!statusHistories.isEmpty()) {
             reportStatusHistoryRepository.saveAll(statusHistories);
@@ -258,19 +279,19 @@ public class AdminDepartmentTransferService {
         }
     }
 
-    private void validateNoPendingTransferHistory(Long issueGroupId) {
-        boolean existsPendingTransferHistory =
+    private void validateNoPendingTransferRequest(Long issueGroupId) {
+        boolean existsPendingTransferRequest =
                 issueGroupTransferHistoryRepository.existsByIssueGroup_IdAndStatus(
                         issueGroupId,
                         IssueGroupTransferHistoryStatus.REQUESTED
                 );
 
-        if (existsPendingTransferHistory) {
+        if (existsPendingTransferRequest) {
             throw new CustomException("이미 처리 대기 중인 이관 요청이 있습니다.", ErrorCode.BAD_REQUEST);
         }
     }
 
-    private void validatePendingTransferHistory(IssueGroupTransferHistory history) {
+    private void validatePendingTransferRequest(IssueGroupTransferHistory history) {
         if (history.getStatus() != IssueGroupTransferHistoryStatus.REQUESTED) {
             throw new CustomException("이미 처리된 이관 요청입니다.", ErrorCode.BAD_REQUEST);
         }
@@ -309,13 +330,13 @@ public class AdminDepartmentTransferService {
             Department targetDepartment,
             String responseReason
     ) {
-        return "이관 수락: 담당 부서가 "
+        return "이관 승인: 담당 부서가 "
                 + targetDepartment.getName()
                 + "(으)로 변경되었습니다. 응답 사유: "
                 + responseReason;
     }
 
     private String buildTransferRejectReason(String responseReason) {
-        return "이관 반려: " + responseReason;
+        return "이관 거절: " + responseReason;
     }
 }

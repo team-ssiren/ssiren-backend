@@ -6,7 +6,7 @@ import com.ssaika.ssiren.domain.report.entity.IssueGroupTransferHistoryStatus;
 import java.time.LocalDateTime;
 
 public record AdminIssueGroupTransferHistoryResponse(
-        Long transferHistoryId,
+        Long transferId,
         Long issueGroupId,
         String issueGroupTitle,
         AdminTransferDepartmentResponse fromDepartment,
