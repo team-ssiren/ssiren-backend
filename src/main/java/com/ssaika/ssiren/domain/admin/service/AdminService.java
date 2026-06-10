@@ -49,8 +49,6 @@ public class AdminService {
     private final NotificationService notificationService;
     private final IssueGroupStatsService issueGroupStatsService;
 
-    private static final BigDecimal EARTH_RADIUS_METERS = BigDecimal.valueOf(6_371_000);
-
     @Transactional
     public AdminIssueGroupStatusUpdateResponse updateAdminIssueGroupStatus(
             Long userId,
@@ -199,7 +197,6 @@ public class AdminService {
                 .orElseThrow(() -> new CustomException("카테고리 병합 기준을 찾을 수 없습니다.", ErrorCode.NOT_FOUND));
 
         BigDecimal newGroupDiameterMeters = issueGroupStatsService.calculateGroupDiameter(mergedActiveReports);
-        validateGroupDiameter(newGroupDiameterMeters, mergeRule);
         validateGroupDiameter(newGroupDiameterMeters, mergeRule);
 
         List<ReportStatusHistory> histories = new ArrayList<>();
