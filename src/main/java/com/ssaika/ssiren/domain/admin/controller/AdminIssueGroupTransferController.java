@@ -19,7 +19,7 @@ public class AdminIssueGroupTransferController {
 
     private final AdminDepartmentTransferService adminDepartmentTransferService;
 
-    @PostMapping("/issues/{issueGroupId}/transfer-histories")
+    @PostMapping("/issues/{issueGroupId}/department")
     public ResponseEntity<BaseResponse<AdminIssueGroupTransferHistoryResponse>> createTransferHistory(
             @AuthenticationPrincipal Long userId,
             @PathVariable Long issueGroupId,
@@ -31,7 +31,7 @@ public class AdminIssueGroupTransferController {
         return ResponseEntity.ok(BaseResponse.success("이슈 그룹 이관 요청 생성 성공", response));
     }
 
-    @GetMapping("/transfer-histories/incoming")
+    @GetMapping("/transfer-histories")
     public ResponseEntity<BaseResponse<AdminIssueGroupTransferHistoryListResponse>> getIncomingTransferHistories(
             @AuthenticationPrincipal Long userId
     ) {
