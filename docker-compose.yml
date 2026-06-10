@@ -48,6 +48,8 @@ services:
         -XX:+ExitOnOutOfMemoryError
     ports:
       - "8080:8080"
+    volumes:
+      - ./secrets:/app/secrets:ro
     depends_on:
       postgres:
         condition: service_healthy
