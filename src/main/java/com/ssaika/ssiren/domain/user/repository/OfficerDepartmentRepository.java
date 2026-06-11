@@ -10,4 +10,6 @@ public interface OfficerDepartmentRepository extends JpaRepository<OfficerDepart
 
     @EntityGraph(attributePaths = {"department", "department.agencyType"})
     List<OfficerDepartment> findByUserId(Long userId);
+
+    void deleteByUserId(Long userId);
 }
