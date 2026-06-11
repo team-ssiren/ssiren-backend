@@ -4,6 +4,8 @@ public interface AdminDashboardStatisticsProjection {
 
     Long getTotalReportCount();
 
+    Long getSubmittedReportCount();
+
     Long getProcessingReportCount();
 
     Long getCompletedReportCount();
