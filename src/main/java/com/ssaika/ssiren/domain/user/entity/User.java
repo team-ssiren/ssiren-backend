@@ -46,6 +46,9 @@ public class User extends BaseTime {
     @Column(name = "is_alarm_enabled", nullable = false)
     private Boolean isAlarmEnabled;
 
+    @Column(name = "role_selected", nullable = false)
+    private Boolean roleSelected;
+
     public static User createKakaoUser(String email, String nickname) {
         return User.builder()
             .email(email)
@@ -53,6 +56,7 @@ public class User extends BaseTime {
             .role(UserRole.CITIZEN)
             .isActive(true)
             .isAlarmEnabled(false)
+            .roleSelected(false)
             .build();
     }
 
@@ -67,6 +71,11 @@ public class User extends BaseTime {
 
     public void deactivate() {
         this.isActive = false;
+    }
+
+    public void updateRole(UserRole role) {
+        this.role = role;
+        this.roleSelected = true;
     }
 
     private static String normalizeNickname(String email, String nickname) {

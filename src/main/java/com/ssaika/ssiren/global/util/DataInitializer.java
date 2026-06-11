@@ -350,6 +350,7 @@ public class DataInitializer implements ApplicationRunner {
         User user = User.createKakaoUser(email, nickname);
         return entity(user)
                 .set("role", role)
+                .set("roleSelected", true)
                 .set("isAlarmEnabled", alarmEnabled)
                 .get();
     }
