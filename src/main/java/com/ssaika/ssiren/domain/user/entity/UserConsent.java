@@ -45,7 +45,10 @@ public class UserConsent extends BaseTime {
     @OnDelete(action = OnDeleteAction.CASCADE)
     private User user;
 
-    public static UserConsent create(User user, Boolean locationAgreed, Boolean sensitiveInfoAgreed) {
+    public static UserConsent create(
+        User user,
+        Boolean locationAgreed,
+        Boolean sensitiveInfoAgreed) {
         return UserConsent.builder()
             .user(user)
             .locationAgreed(locationAgreed)
@@ -58,6 +61,11 @@ public class UserConsent extends BaseTime {
         this.locationAgreed = locationAgreed;
         this.sensitiveInfoAgreedAt = resolveSensitiveInfoAgreedAt(sensitiveInfoAgreed);
         this.sensitiveInfoAgreed = sensitiveInfoAgreed;
+    }
+
+    public boolean isAllRequiredAgreed() {
+        return Boolean.TRUE.equals(locationAgreed)
+            && Boolean.TRUE.equals(sensitiveInfoAgreed);
     }
 
     private LocalDateTime resolveSensitiveInfoAgreedAt(Boolean nextSensitiveInfoAgreed) {

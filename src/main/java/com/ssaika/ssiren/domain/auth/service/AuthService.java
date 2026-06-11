@@ -84,7 +84,7 @@ public class AuthService {
     }
 
     private void ensureDefaultConsent(User user) {
-        if (userConsentRepository.findByUserId(user.getId()).isEmpty()) {
+        if (userConsentRepository.findFirstByUserIdOrderByUpdatedAtDesc(user.getId()).isEmpty()) {
             userConsentRepository.save(UserConsent.create(user, false, false));
         }
     }
