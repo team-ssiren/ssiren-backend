@@ -13,6 +13,7 @@ import com.ssaika.ssiren.domain.chatbot.client.dto.ChatbotPlanResponse;
 import com.ssaika.ssiren.domain.chatbot.client.dto.ChatbotTitleResponse;
 import com.ssaika.ssiren.domain.chatbot.dto.request.ChatbotMessageSendRequest;
 import com.ssaika.ssiren.domain.chatbot.dto.response.ChatbotMessageCursorResponse;
+import com.ssaika.ssiren.domain.chatbot.dto.response.ChatbotMessageSendResponse;
 import com.ssaika.ssiren.domain.chatbot.dto.response.ChatbotSessionResponse;
 import com.ssaika.ssiren.domain.chatbot.entity.ChatbotMessage;
 import com.ssaika.ssiren.domain.chatbot.entity.ChatbotSession;
@@ -139,8 +140,10 @@ class ChatbotServiceTest {
     void getChatbotMessagesReturnsCursorResponse() {
         Pageable pageable = PageRequest.of(0, 3);
         LocalDateTime createdAt = LocalDateTime.of(2026, 6, 9, 12, 35);
-        when(chatbotSessionRepository.findByIdAndUser_Id(1L, 1L))
+        when(chatbotSessionRepository.findById(1L))
             .thenReturn(Optional.of(chatbotSession));
+        when(chatbotSession.getUser()).thenReturn(user);
+        when(user.getId()).thenReturn(1L);
         when(chatbotMessageRepository.findAllBySession_IdOrderByIdDesc(1L, pageable))
             .thenReturn(List.of(firstMessage, secondMessage, thirdMessage));
         when(firstMessage.getId()).thenReturn(130L);
@@ -163,7 +166,7 @@ class ChatbotServiceTest {
 
     @Test
     void getChatbotMessagesThrowsExceptionWhenSessionDoesNotExist() {
-        when(chatbotSessionRepository.findByIdAndUser_Id(1L, 1L))
+        when(chatbotSessionRepository.findById(1L))
             .thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> chatbotService.getChatbotMessages(1L, 1L, null, 20))
@@ -172,6 +175,87 @@ class ChatbotServiceTest {
 
         verify(chatbotMessageRepository, never()).findAllBySession_IdOrderByIdDesc(1L,
             PageRequest.of(0, 21));
+    }
+
+    @Test
+    void saveChatbotMessageUpdatesTitleWhenFirstMessageInNewChat() {
+        ChatbotMessageSendRequest request = new ChatbotMessageSendRequest(
+            "이 근처에 위험한 제보 있어?",
+            new BigDecimal("36.36"),
+            new BigDecimal("127.34")
+        );
+        ChatbotSession session = ChatbotSession.create(
+            user,
+            "새 대화",
+            LocalDateTime.of(2026, 6, 9, 12, 40)
+        );
+        String botAnswer = "주변에 접수된 제보가 없어요.";
+        when(user.getId()).thenReturn(1L);
+        when(chatbotSessionRepository.findById(1L))
+            .thenReturn(Optional.of(session));
+        when(chatbotMessageRepository.findAllBySession_IdOrderByIdDesc(1L, PageRequest.of(0, 10)))
+            .thenReturn(List.of());
+        when(chatbotAiClient.requestPlan(ArgumentMatchers.any()))
+            .thenReturn(Optional.of(new ChatbotPlanResponse(ChatbotAction.ANSWER_DIRECT, null,
+                botAnswer)));
+        when(chatbotAiClient.requestTitle(ArgumentMatchers.any()))
+            .thenReturn(Optional.of(new ChatbotTitleResponse("인근 위험 제보 문의")));
+        when(chatbotMessageRepository.findFirstBySession_IdAndSenderTypeOrderByIdAsc(1L,
+            ChatbotSenderType.USER)).thenReturn(Optional.empty());
+        when(chatbotMessageRepository.findFirstBySession_IdAndSenderTypeOrderByIdAsc(1L,
+            ChatbotSenderType.BOT)).thenReturn(Optional.empty());
+        when(chatbotMessageRepository.save(ArgumentMatchers.any()))
+            .thenAnswer(invocation -> invocation.getArgument(0));
+
+        ChatbotMessageSendResponse response = chatbotService.saveChatbotMessage(1L, 1L, request);
+
+        assertThat(response.session().title()).isEqualTo("인근 위험 제보 문의");
+        assertThat(response.messages()).hasSize(2);
+        verify(chatbotAiClient).requestTitle(ArgumentMatchers.any());
+    }
+
+    @Test
+    void saveChatbotMessageRetriesTitleWhenSessionTitleIsStillNewChat() {
+        ChatbotMessageSendRequest request = new ChatbotMessageSendRequest(
+            "그럼 내 제보는?",
+            new BigDecimal("36.36"),
+            new BigDecimal("127.34")
+        );
+        ChatbotSession session = ChatbotSession.create(
+            user,
+            "새 대화",
+            LocalDateTime.of(2026, 6, 9, 12, 40)
+        );
+        String botAnswer = "내 제보 목록을 확인했어요.";
+        when(user.getId()).thenReturn(1L);
+        when(chatbotSessionRepository.findById(1L))
+            .thenReturn(Optional.of(session));
+        when(firstMessage.getId()).thenReturn(1L);
+        when(firstMessage.getSenderType()).thenReturn(ChatbotSenderType.USER);
+        when(firstMessage.getMessage()).thenReturn("이 근처에 위험한 제보 있어?");
+        when(secondMessage.getId()).thenReturn(2L);
+        when(secondMessage.getSenderType()).thenReturn(ChatbotSenderType.BOT);
+        when(secondMessage.getMessage()).thenReturn("주변에 접수된 제보가 없어요.");
+        when(chatbotMessageRepository.findAllBySession_IdOrderByIdDesc(1L, PageRequest.of(0, 10)))
+            .thenReturn(List.of(secondMessage, firstMessage));
+        when(chatbotAiClient.requestPlan(ArgumentMatchers.any()))
+            .thenReturn(Optional.of(new ChatbotPlanResponse(ChatbotAction.ANSWER_DIRECT, null,
+                botAnswer)));
+        when(chatbotMessageRepository.findFirstBySession_IdAndSenderTypeOrderByIdAsc(1L,
+            ChatbotSenderType.USER)).thenReturn(Optional.of(firstMessage));
+        when(chatbotMessageRepository.findFirstBySession_IdAndSenderTypeOrderByIdAsc(1L,
+            ChatbotSenderType.BOT)).thenReturn(Optional.of(secondMessage));
+        when(chatbotAiClient.requestTitle(ArgumentMatchers.argThat(titleRequest ->
+            "이 근처에 위험한 제보 있어?".equals(titleRequest.question())
+                && "주변에 접수된 제보가 없어요.".equals(titleRequest.answer())
+        ))).thenReturn(Optional.of(new ChatbotTitleResponse("인근 위험 제보 문의")));
+        when(chatbotMessageRepository.save(ArgumentMatchers.any()))
+            .thenAnswer(invocation -> invocation.getArgument(0));
+
+        ChatbotMessageSendResponse response = chatbotService.saveChatbotMessage(1L, 1L, request);
+
+        assertThat(response.session().title()).isEqualTo("인근 위험 제보 문의");
+        verify(chatbotAiClient).requestTitle(ArgumentMatchers.any());
     }
 
     @Test
@@ -279,8 +363,6 @@ class ChatbotServiceTest {
             .thenReturn(Optional.of(chatbotSession));
         when(chatbotSession.getUser()).thenReturn(user);
         when(user.getId()).thenReturn(1L);
-        when(chatbotMessageRepository.countBySession_Id(1L))
-            .thenReturn(0L);
         when(chatbotMessageRepository.findAllBySession_IdOrderByIdDesc(1L, PageRequest.of(0, 10)))
             .thenReturn(List.of());
         when(chatbotAiClient.requestPlan(ArgumentMatchers.any()))

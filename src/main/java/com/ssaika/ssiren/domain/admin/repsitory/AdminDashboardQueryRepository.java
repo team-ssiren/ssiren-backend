@@ -35,6 +35,7 @@ public interface AdminDashboardQueryRepository extends Repository<Report, Long> 
                 where h.new_status = 'COMPLETED'
                   and h.created_at >= :monthStart
                   and h.created_at < :nextMonthStart
+                  and rh.is_representative = true
                   and rh.is_deleted = false
                   and (
                       (:myDepartmentOnly = true and rh.department_id in (:departmentIds))
@@ -48,7 +49,8 @@ public interface AdminDashboardQueryRepository extends Repository<Report, Long> 
             end) as "todayNewReportCount"
         from reports r
         join departments d on d.id = r.department_id
-        where r.is_deleted = false
+        where r.is_representative = true
+          and r.is_deleted = false
           and (
               (:myDepartmentOnly = true and r.department_id in (:departmentIds))
               or
@@ -76,7 +78,8 @@ public interface AdminDashboardQueryRepository extends Repository<Report, Long> 
         join departments d on d.id = r.department_id
         join report_categories c on c.id = r.category_id
         left join report_categories parent on parent.id = c.parent_category_id
-        where r.is_deleted = false
+        where r.is_representative = true
+          and r.is_deleted = false
           and (
               (:myDepartmentOnly = true and r.department_id in (:departmentIds))
               or

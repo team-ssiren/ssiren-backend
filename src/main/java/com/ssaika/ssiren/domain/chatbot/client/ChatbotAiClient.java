@@ -15,6 +15,7 @@ import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
+import org.springframework.web.util.DefaultUriBuilderFactory;
 
 @Slf4j
 @Component
@@ -31,8 +32,10 @@ public class ChatbotAiClient {
 
     public ChatbotAiClient(
         @Value("${AI_BASE_URL:http://localhost:8000}") String aiBaseUrl) {
+        DefaultUriBuilderFactory uriBuilderFactory = new DefaultUriBuilderFactory(aiBaseUrl);
+        uriBuilderFactory.setEncodingMode(DefaultUriBuilderFactory.EncodingMode.NONE);
         this.restClient = RestClient.builder()
-            .baseUrl(aiBaseUrl)
+            .uriBuilderFactory(uriBuilderFactory)
             .requestFactory(createRequestFactory())
             .build();
     }
