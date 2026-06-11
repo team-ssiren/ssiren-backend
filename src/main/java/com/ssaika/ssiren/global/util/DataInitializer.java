@@ -10,20 +10,8 @@ import com.ssaika.ssiren.domain.chatbot.repository.ChatbotMessageRepository;
 import com.ssaika.ssiren.domain.chatbot.repository.ChatbotSessionRepository;
 import com.ssaika.ssiren.domain.notification.entity.Notification;
 import com.ssaika.ssiren.domain.notification.repository.NotificationRepository;
-import com.ssaika.ssiren.domain.report.entity.IssueGroup;
-import com.ssaika.ssiren.domain.report.entity.Report;
-import com.ssaika.ssiren.domain.report.entity.ReportCategory;
-import com.ssaika.ssiren.domain.report.entity.ReportCategoryMergeRule;
-import com.ssaika.ssiren.domain.report.entity.ReportImage;
-import com.ssaika.ssiren.domain.report.entity.ReportReactionLog;
-import com.ssaika.ssiren.domain.report.entity.ReportStatusHistory;
-import com.ssaika.ssiren.domain.report.repository.IssueGroupRepository;
-import com.ssaika.ssiren.domain.report.repository.ReportCategoryMergeRuleRepository;
-import com.ssaika.ssiren.domain.report.repository.ReportCategoryRepository;
-import com.ssaika.ssiren.domain.report.repository.ReportImageRepository;
-import com.ssaika.ssiren.domain.report.repository.ReportReactionLogRepository;
-import com.ssaika.ssiren.domain.report.repository.ReportRepository;
-import com.ssaika.ssiren.domain.report.repository.ReportStatusHistoryRepository;
+import com.ssaika.ssiren.domain.report.entity.*;
+import com.ssaika.ssiren.domain.report.repository.*;
 import com.ssaika.ssiren.domain.user.entity.OfficerDepartment;
 import com.ssaika.ssiren.domain.user.entity.User;
 import com.ssaika.ssiren.domain.user.entity.UserConsent;
@@ -32,13 +20,14 @@ import com.ssaika.ssiren.domain.user.repository.OfficerDepartmentRepository;
 import com.ssaika.ssiren.domain.user.repository.UserConsentRepository;
 import com.ssaika.ssiren.domain.user.repository.UserFcmTokenRepository;
 import com.ssaika.ssiren.domain.user.repository.UserRepository;
-import com.ssaika.ssiren.global.enums.ChatbotSenderType;
-import com.ssaika.ssiren.global.enums.IssueGroupStatus;
-import com.ssaika.ssiren.global.enums.NotificationType;
-import com.ssaika.ssiren.global.enums.ReportReactionType;
-import com.ssaika.ssiren.global.enums.ReportStatus;
-import com.ssaika.ssiren.global.enums.ReportVisibility;
-import com.ssaika.ssiren.global.enums.UserRole;
+import com.ssaika.ssiren.global.enums.*;
+import lombok.RequiredArgsConstructor;
+import org.springframework.boot.ApplicationArguments;
+import org.springframework.boot.ApplicationRunner;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
@@ -47,12 +36,6 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
-import lombok.RequiredArgsConstructor;
-import org.springframework.boot.ApplicationArguments;
-import org.springframework.boot.ApplicationRunner;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 @Component
 @RequiredArgsConstructor
@@ -487,6 +470,7 @@ public class DataInitializer implements ApplicationRunner {
                 .set("reason", reason)
                 .set("report", report)
                 .set("user", user)
+                .set("department", report.getDepartment())
                 .get();
     }
 

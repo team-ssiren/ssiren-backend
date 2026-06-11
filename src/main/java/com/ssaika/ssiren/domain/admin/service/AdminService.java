@@ -98,7 +98,8 @@ public class AdminService {
                     request.status(),
                     request.reason(),
                     report,
-                    user
+                    user,
+                    report.getDepartment()
             ));
 
             if (request.shouldNotifyReporter()) {
@@ -214,7 +215,8 @@ public class AdminService {
                     currentStatus,
                     buildMergeReason(targetIssueGroupId, request.reason()),
                     sourceReport,
-                    user
+                    user,
+                    sourceReport.getDepartment()
             ));
         }
 

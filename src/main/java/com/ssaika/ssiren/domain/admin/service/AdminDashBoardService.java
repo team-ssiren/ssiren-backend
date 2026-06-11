@@ -190,8 +190,16 @@ public class AdminDashBoardService {
         double cellSwLng = baseSwLng + key.col() * gridLngSize;
         double cellNeLat = cellSwLat + gridLatSize;
         double cellNeLng = cellSwLng + gridLngSize;
-        double centerLat = (cellSwLat + cellNeLat) / 2.0;
-        double centerLng = (cellSwLng + cellNeLng) / 2.0;
+
+        double centerLat = points.stream()
+                .mapToDouble(point -> point.getGroupLatitude().doubleValue())
+                .average()
+                .orElse((cellSwLat + cellNeLat) / 2.0);
+
+        double centerLng = points.stream()
+                .mapToDouble(point -> point.getGroupLongitude().doubleValue())
+                .average()
+                .orElse((cellSwLng + cellNeLng) / 2.0);
 
         return new AdminDashboardDenseAreaItemResponse(
                 (long) points.size(),

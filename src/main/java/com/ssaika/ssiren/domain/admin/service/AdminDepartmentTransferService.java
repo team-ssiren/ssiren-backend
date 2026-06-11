@@ -93,7 +93,8 @@ public class AdminDepartmentTransferService {
                         ReportStatus.TRANSFERRED,
                         buildTransferRequestReason(fromDepartment, targetDepartment, request.requestReason()),
                         report,
-                        requestUser
+                        requestUser,
+                        fromDepartment
                 ))
                 .toList();
 
@@ -177,7 +178,8 @@ public class AdminDepartmentTransferService {
                     currentStatus,
                     buildTransferAcceptReason(history.getTargetDepartment(), responseReason),
                     report,
-                    responseUser
+                    responseUser,
+                    history.getTargetDepartment()
             ));
         }
 
@@ -213,7 +215,8 @@ public class AdminDepartmentTransferService {
                         report.getStatus(),
                         buildTransferRejectReason(responseReason),
                         report,
-                        responseUser
+                        responseUser,
+                        history.getTargetDepartment()
                 ))
                 .toList();
 
