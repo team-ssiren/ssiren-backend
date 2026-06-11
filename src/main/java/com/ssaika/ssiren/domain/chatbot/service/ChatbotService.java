@@ -11,6 +11,8 @@ import com.ssaika.ssiren.domain.chatbot.client.dto.ChatbotPlanParams;
 import com.ssaika.ssiren.domain.chatbot.client.dto.ChatbotPlanRequest;
 import com.ssaika.ssiren.domain.chatbot.client.dto.ChatbotPlanResponse;
 import com.ssaika.ssiren.domain.chatbot.client.dto.ChatbotReportContext;
+import com.ssaika.ssiren.domain.chatbot.client.dto.ChatbotTitleRequest;
+import com.ssaika.ssiren.domain.chatbot.client.dto.ChatbotTitleResponse;
 import com.ssaika.ssiren.domain.chatbot.client.dto.ChatbotUserLocation;
 import com.ssaika.ssiren.domain.chatbot.dto.request.ChatbotMessageSendRequest;
 import com.ssaika.ssiren.domain.chatbot.dto.request.ChatbotSessionTitleUpdateRequest;
@@ -221,13 +223,21 @@ public class ChatbotService {
         ));
 
         if (messageCount == 0 && NEW_CHAT_TITLE.equals(session.getTitle())) {
-            // TODO: AI 제목 생성 API 명세를 받으면 이 위치에서 10자 이내 제목 생성 후 session.updateTitle(...) 호출
+            generateSessionTitle(session, request.message(), botAnswer);
         }
 
         return ChatbotMessageSendResponse.of(
             ChatbotSessionResponse.from(session),
             List.of(ChatbotMessageResponse.from(userMessage), ChatbotMessageResponse.from(botMessage))
         );
+    }
+
+    private void generateSessionTitle(ChatbotSession session, String question, String botAnswer) {
+        chatbotAiClient.requestTitle(new ChatbotTitleRequest(question, botAnswer))
+            .map(ChatbotTitleResponse::title)
+            .map(String::strip)
+            .filter(title -> !title.isBlank())
+            .ifPresent(session::updateTitle);
     }
 
     private ChatbotSession getOwnedSession(Long userId, Long sessionId) {
