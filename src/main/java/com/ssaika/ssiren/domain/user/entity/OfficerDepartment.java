@@ -39,4 +39,11 @@ public class OfficerDepartment extends BaseTime {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "department_id", nullable = false)
     private Department department;
+
+    public static OfficerDepartment create(User user, Department department) {
+        return OfficerDepartment.builder()
+            .user(user)
+            .department(department)
+            .build();
+    }
 }

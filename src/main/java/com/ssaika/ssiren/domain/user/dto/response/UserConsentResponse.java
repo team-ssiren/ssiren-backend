@@ -13,6 +13,7 @@ public class UserConsentResponse {
     private final Boolean locationAgreed;
     private final Boolean sensitiveInfoAgreed;
     private final LocalDateTime sensitiveInfoAgreedAt;
+    private final Boolean requiredAgreed;
     private final LocalDateTime updatedAt;
 
     public static UserConsentResponse from(UserConsent userConsent) {
@@ -21,6 +22,7 @@ public class UserConsentResponse {
             .locationAgreed(userConsent.getLocationAgreed())
             .sensitiveInfoAgreed(userConsent.getSensitiveInfoAgreed())
             .sensitiveInfoAgreedAt(userConsent.getSensitiveInfoAgreedAt())
+            .requiredAgreed(userConsent.isAllRequiredAgreed())
             .updatedAt(userConsent.getUpdatedAt())
             .build();
     }
