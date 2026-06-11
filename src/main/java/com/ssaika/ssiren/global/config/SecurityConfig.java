@@ -46,8 +46,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/reports/**").authenticated()
                 .requestMatchers("/api/v1/issues").authenticated()
                 .requestMatchers("/api/v1/issues/**").authenticated()
-                .requestMatchers("/api/v1/chatbots").permitAll()
-                .requestMatchers("/api/v1/chatbots/**").permitAll()
+                .requestMatchers("/api/v1/chatbots").authenticated()
+                .requestMatchers("/api/v1/chatbots/**").authenticated()
                 // TODO: 추후 리포트 관련 api 설정 추가하며 반영 고려
                 .requestMatchers("/api/v1/reports/drafts").authenticated()
                 .requestMatchers("/api/v1/reports").authenticated()

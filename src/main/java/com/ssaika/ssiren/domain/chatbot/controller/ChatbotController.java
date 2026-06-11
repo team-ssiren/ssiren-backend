@@ -36,8 +36,6 @@ import org.springframework.web.bind.annotation.RestController;
 @Validated
 public class ChatbotController {
 
-    private static final Long TEST_USER_ID = 1L;
-
     private final ChatbotService chatbotService;
 
     @GetMapping("/sessions")
@@ -46,7 +44,7 @@ public class ChatbotController {
         @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC)
         Pageable pageable) {
         PageResponseDto<ChatbotSessionResponse> response = PageResponseDto.from(
-            chatbotService.getMyChatbotSessions(TEST_USER_ID, pageable)
+            chatbotService.getMyChatbotSessions(userId, pageable)
         );
 
         return ResponseEntity.ok(BaseResponse.success("내 챗봇 세션 목록 조회 성공", response));
@@ -58,7 +56,7 @@ public class ChatbotController {
         @PathVariable Long sessionId,
         @RequestParam(required = false) Long cursor,
         @RequestParam(defaultValue = "20") @Min(1) @Max(100) Integer size) {
-        ChatbotMessageCursorResponse response = chatbotService.getChatbotMessages(TEST_USER_ID,
+        ChatbotMessageCursorResponse response = chatbotService.getChatbotMessages(userId,
             sessionId, cursor, size);
 
         return ResponseEntity.ok(BaseResponse.success("채팅 내역 조회 성공", response));
@@ -67,7 +65,7 @@ public class ChatbotController {
     @PostMapping("/sessions")
     public ResponseEntity<BaseResponse<ChatbotSessionResponse>> saveChatbotSession(
         @AuthenticationPrincipal Long userId) {
-        ChatbotSessionResponse response = chatbotService.saveChatbotSession(TEST_USER_ID);
+        ChatbotSessionResponse response = chatbotService.saveChatbotSession(userId);
 
         return ResponseEntity.status(HttpStatus.CREATED)
             .body(BaseResponse.success(HttpStatus.CREATED, "챗봇 세션 생성 성공", response));
@@ -77,7 +75,7 @@ public class ChatbotController {
     public ResponseEntity<BaseResponse<Void>> deleteChatbotSession(
         @AuthenticationPrincipal Long userId,
         @PathVariable Long sessionId) {
-        chatbotService.deleteChatbotSession(TEST_USER_ID, sessionId);
+        chatbotService.deleteChatbotSession(userId, sessionId);
 
         return ResponseEntity.ok(BaseResponse.success("챗봇 세션 삭제 성공", null));
     }
@@ -88,7 +86,7 @@ public class ChatbotController {
         @PathVariable Long sessionId,
         @Valid @RequestBody ChatbotSessionTitleUpdateRequest request) {
         ChatbotSessionTitleUpdateResponse response = chatbotService.updateChatbotSessionTitle(
-            TEST_USER_ID,
+            userId,
             sessionId,
             request
         );
@@ -101,7 +99,7 @@ public class ChatbotController {
         @AuthenticationPrincipal Long userId,
         @PathVariable Long sessionId,
         @Valid @RequestBody ChatbotMessageSendRequest request) {
-        ChatbotMessageSendResponse response = chatbotService.saveChatbotMessage(TEST_USER_ID,
+        ChatbotMessageSendResponse response = chatbotService.saveChatbotMessage(userId,
             sessionId, request);
 
         return ResponseEntity.status(HttpStatus.CREATED)
