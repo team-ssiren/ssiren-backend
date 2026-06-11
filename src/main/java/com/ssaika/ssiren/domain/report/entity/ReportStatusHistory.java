@@ -1,5 +1,6 @@
 package com.ssaika.ssiren.domain.report.entity;
 
+import com.ssaika.ssiren.domain.agency.entity.Department;
 import com.ssaika.ssiren.domain.user.entity.User;
 import com.ssaika.ssiren.global.entity.BaseTime;
 import com.ssaika.ssiren.global.enums.ReportStatus;
@@ -55,12 +56,18 @@ public class ReportStatusHistory extends BaseTime {
     @OnDelete(action = OnDeleteAction.SET_NULL)
     private User user;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "department_id")
+    @OnDelete(action = OnDeleteAction.SET_NULL)
+    private Department department;
+
     public static ReportStatusHistory create(
             ReportStatus previousStatus,
             ReportStatus newStatus,
             String reason,
             Report report,
-            User user
+            User user,
+            Department department
     ) {
         return ReportStatusHistory.builder()
                 .previousStatus(previousStatus)
@@ -68,6 +75,7 @@ public class ReportStatusHistory extends BaseTime {
                 .reason(reason)
                 .report(report)
                 .user(user)
+                .department(department)
                 .build();
     }
 }

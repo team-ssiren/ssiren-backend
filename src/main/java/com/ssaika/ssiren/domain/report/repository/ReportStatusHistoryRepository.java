@@ -9,9 +9,9 @@ import java.util.List;
 
 public interface ReportStatusHistoryRepository extends JpaRepository<ReportStatusHistory, Long> {
 
-    @EntityGraph(attributePaths = {"report", "user"})
+    @EntityGraph(attributePaths = {"report", "user", "department"})
     List<ReportStatusHistory> findByReport_IdOrderByCreatedAtAsc(Long reportId);
 
-    @EntityGraph(attributePaths = {"report", "user"})
+    @EntityGraph(attributePaths = {"report", "user", "department"})
     List<ReportStatusHistory> findByReport_IdInOrderByReport_IdAscCreatedAtAsc(Collection<Long> reportIds);
 }
