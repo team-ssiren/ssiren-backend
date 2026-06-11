@@ -18,7 +18,10 @@ public interface AdminDashboardQueryRepository extends Repository<Report, Long> 
         select
             count(r.id) as "totalReportCount",
             count(case
-                when r.status in ('SUBMITTED', 'RECEIVED', 'CHECKING', 'IN_PROGRESS') then 1
+                when r.status = 'SUBMITTED' then 1
+            end) as "submittedReportCount",
+            count(case
+                when r.status in ('CHECKING', 'IN_PROGRESS') then 1
             end) as "processingReportCount",
             count(case
                 when r.status = 'COMPLETED' then 1
@@ -56,7 +59,7 @@ public interface AdminDashboardQueryRepository extends Repository<Report, Long> 
               or
               (:myDepartmentOnly = false and d.agency_type_id in (:agencyTypeIds))
           )
-        """, nativeQuery = true)
+    """, nativeQuery = true)
     AdminDashboardStatisticsProjection getStatistics(
             @Param("myDepartmentOnly") boolean myDepartmentOnly,
             @Param("departmentIds") List<Long> departmentIds,

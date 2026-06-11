@@ -4,6 +4,7 @@ import com.ssaika.ssiren.domain.admin.dto.projection.AdminDashboardStatisticsPro
 
 public record AdminDashboardStatisticsResponse(
         Long totalReportCount,
+        Long submittedReportCount,
         Long processingReportCount,
         Long completedReportCount,
         Long delayedReportCount,
@@ -14,6 +15,7 @@ public record AdminDashboardStatisticsResponse(
     public static AdminDashboardStatisticsResponse from(AdminDashboardStatisticsProjection projection) {
         return new AdminDashboardStatisticsResponse(
                 projection.getTotalReportCount(),
+                projection.getSubmittedReportCount(),
                 projection.getProcessingReportCount(),
                 projection.getCompletedReportCount(),
                 projection.getDelayedReportCount(),
