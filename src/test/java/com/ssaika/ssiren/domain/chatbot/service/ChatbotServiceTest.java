@@ -313,6 +313,46 @@ class ChatbotServiceTest {
     }
 
     @Test
+    void saveChatbotMessageGeneratesSessionTitleOnFirstMessage() {
+        LocalDateTime createdAt = LocalDateTime.of(2026, 6, 9, 13, 0);
+        ChatbotMessageSendRequest request = new ChatbotMessageSendRequest(
+            "불법주정차 신고하고 싶어",
+            new BigDecimal("36.36"),
+            new BigDecimal("127.34")
+        );
+        when(chatbotSessionRepository.findById(1L))
+            .thenReturn(Optional.of(chatbotSession));
+        when(chatbotSession.getUser()).thenReturn(user);
+        when(user.getId()).thenReturn(1L);
+        when(chatbotMessageRepository.countBySession_Id(1L))
+            .thenReturn(0L);
+        when(chatbotMessageRepository.findAllBySession_IdOrderByIdDesc(1L, PageRequest.of(0, 10)))
+            .thenReturn(List.of());
+        when(chatbotAiClient.requestPlan(ArgumentMatchers.any()))
+            .thenReturn(Optional.of(
+                new ChatbotPlanResponse(ChatbotAction.ANSWER_DIRECT, null, "안내해 드릴게요.")));
+        when(chatbotMessageRepository.save(ArgumentMatchers.any()))
+            .thenReturn(firstMessage, secondMessage);
+        when(chatbotSession.getTitle()).thenReturn("새 대화");
+        when(chatbotSession.getCreatedAt()).thenReturn(createdAt);
+        when(chatbotAiClient.requestTitle(ArgumentMatchers.any()))
+            .thenReturn(Optional.of(new ChatbotTitleResponse(" 불법주정차 ")));
+        when(firstMessage.getId()).thenReturn(1L);
+        when(firstMessage.getSenderType()).thenReturn(ChatbotSenderType.USER);
+        when(firstMessage.getMessage()).thenReturn("불법주정차 신고하고 싶어");
+        when(firstMessage.getCreatedAt()).thenReturn(createdAt);
+        when(secondMessage.getId()).thenReturn(2L);
+        when(secondMessage.getSenderType()).thenReturn(ChatbotSenderType.BOT);
+        when(secondMessage.getMessage()).thenReturn("안내해 드릴게요.");
+        when(secondMessage.getCreatedAt()).thenReturn(createdAt);
+
+        chatbotService.saveChatbotMessage(1L, 1L, request);
+
+        verify(chatbotAiClient).requestTitle(ArgumentMatchers.any());
+        verify(chatbotSession).updateTitle("불법주정차");
+    }
+
+    @Test
     void saveChatbotMessageDoesNotSaveMessagesWhenAiResponseFails() {
         ChatbotMessageSendRequest request = new ChatbotMessageSendRequest(
             "이 근처에 위험한 제보 있어?",

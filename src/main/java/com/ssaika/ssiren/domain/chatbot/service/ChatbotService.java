@@ -229,6 +229,14 @@ public class ChatbotService {
         );
     }
 
+    private void generateSessionTitle(ChatbotSession session, String question, String botAnswer) {
+        chatbotAiClient.requestTitle(new ChatbotTitleRequest(question, botAnswer))
+            .map(ChatbotTitleResponse::title)
+            .map(String::strip)
+            .filter(title -> !title.isBlank())
+            .ifPresent(session::updateTitle);
+    }
+
     private ChatbotSession getOwnedSession(Long userId, Long sessionId) {
         ChatbotSession session = chatbotSessionRepository.findById(sessionId)
             .orElseThrow(() -> new CustomException(
