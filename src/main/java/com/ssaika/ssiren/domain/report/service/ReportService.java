@@ -269,6 +269,10 @@ public class ReportService {
 
         List<Report> groupReports = reportsByIssueGroup.getOrDefault(issueGroup.getId(), List.of());
         if (groupReports.stream()
+            .anyMatch(report -> !Objects.equals(report.getCategory().getId(), request.categoryId()))) {
+            return null;
+        }
+        if (groupReports.stream()
             .anyMatch(report -> !Objects.equals(report.getDepartment().getId(), request.departmentId()))) {
             return null;
         }

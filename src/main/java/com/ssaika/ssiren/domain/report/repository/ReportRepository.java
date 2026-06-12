@@ -50,7 +50,7 @@ public interface ReportRepository extends JpaRepository<Report, Long>, JpaSpecif
     })
     Optional<Report> findByIdAndUser_Id(Long id, Long userId);
 
-    @EntityGraph(attributePaths = {"issueGroup", "department"})
+    @EntityGraph(attributePaths = {"issueGroup", "category", "department"})
     List<Report> findByIssueGroup_IdInAndIsDeletedFalse(Collection<Long> issueGroupIds);
 
     @EntityGraph(attributePaths = {"issueGroup"})
