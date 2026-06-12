@@ -42,6 +42,9 @@ public record ReportCreateRequest(
     @NotNull(message = "위험 점수는 필수입니다.")
     BigDecimal riskScore,
 
+    @NotBlank(message = "부서 배정 근거는 필수입니다.")
+    String assignmentReason,
+
     @NotNull(message = "공개 범위는 필수입니다.")
     ReportVisibility visibility,
 

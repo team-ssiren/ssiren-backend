@@ -20,6 +20,7 @@ public record ReportDraftResponse(
     String eupmyeondong,
     LocalDateTime occurredAt,
     BigDecimal riskScore,
+    String assignmentReason,
     ReportStatus status,
     Boolean isRepresentative,
     ReportVisibility visibility,

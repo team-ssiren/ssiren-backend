@@ -118,6 +118,7 @@ public class Report extends BaseTime {
         String eupmyeondong,
         LocalDateTime occurredAt,
         BigDecimal riskScore,
+        String assignmentReason,
         ReportVisibility visibility,
         String embedding,
         Boolean isRepresentative,
@@ -137,6 +138,7 @@ public class Report extends BaseTime {
             .eupmyeondong(eupmyeondong)
             .occurredAt(occurredAt)
             .riskScore(riskScore)
+            .assignmentReason(assignmentReason)
             .status(ReportStatus.SUBMITTED)
             .visibility(visibility)
             .embedding(embedding)
