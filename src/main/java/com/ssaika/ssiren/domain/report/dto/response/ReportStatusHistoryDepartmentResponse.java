@@ -4,7 +4,8 @@ import com.ssaika.ssiren.domain.agency.entity.Department;
 
 public record ReportStatusHistoryDepartmentResponse(
         Long id,
-        String name
+        String name,
+        ReportAgencyTypeResponse agencyType
 ) {
 
     public static ReportStatusHistoryDepartmentResponse from(Department department) {
@@ -14,7 +15,8 @@ public record ReportStatusHistoryDepartmentResponse(
 
         return new ReportStatusHistoryDepartmentResponse(
                 department.getId(),
-                department.getName()
+                department.getName(),
+                ReportAgencyTypeResponse.from(department.getAgencyType())
         );
     }
 }

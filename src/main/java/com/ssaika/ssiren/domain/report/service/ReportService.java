@@ -111,6 +111,7 @@ public class ReportService {
         ));
 
         ReportCategory category = resolveReportCategory(aiResponse);
+        Department department = resolveDepartment(aiResponse);
 
         return new ReportDraftCreateResponse(
             createReportDraftResponse(
@@ -119,12 +120,13 @@ public class ReportService {
                 occurredAt,
                 address,
                 aiResponse,
-                category
+                category,
+                department
             ),
             ReportCategoryResponse.from(category),
             category.getParentCategory() == null ? null : ReportCategoryResponse.from(category.getParentCategory()),
-            ReportDepartmentResponse.from(category.getDepartment()),
-            ReportAgencyTypeResponse.from(category.getDepartment().getAgencyType()),
+            ReportDepartmentResponse.from(department),
+            ReportAgencyTypeResponse.from(department.getAgencyType()),
             ReportAiAnalysisResponse.from(aiResponse.analysis())
         );
     }
@@ -151,7 +153,6 @@ public class ReportService {
         ReportCategory category = getReportCategory(request.categoryId());
         validateRegistrableCategory(category);
         Department department = getDepartment(request.departmentId());
-        validateCategoryDepartment(category, department);
 
         IssueGroup issueGroup = resolveIssueGroupForCreate(request);
 
@@ -167,6 +168,7 @@ public class ReportService {
             request.eupmyeondong(),
             request.occurredAt(),
             request.riskScore(),
+            request.assignmentReason(),
             request.visibility(),
             toPgVector(request.embedding()),
             issueGroup.getReportCount() == 1,
@@ -266,6 +268,15 @@ public class ReportService {
         }
 
         List<Report> groupReports = reportsByIssueGroup.getOrDefault(issueGroup.getId(), List.of());
+        if (groupReports.stream()
+            .anyMatch(report -> !Objects.equals(report.getCategory().getId(), request.categoryId()))) {
+            return null;
+        }
+        if (groupReports.stream()
+            .anyMatch(report -> !Objects.equals(report.getDepartment().getId(), request.departmentId()))) {
+            return null;
+        }
+
         BigDecimal newGroupDiameter = calculateNewGroupDiameter(request, issueGroup, groupReports);
         BigDecimal maxGroupDiameter = BigDecimal.valueOf(mergeRule.getMaxGroupDiameterMeters());
         if (newGroupDiameter.compareTo(maxGroupDiameter) > 0) {
@@ -773,19 +784,13 @@ public class ReportService {
             return null;
         }
 
-        return reportCategoryRepository.findWithDepartmentById(categoryId)
+        return reportCategoryRepository.findWithParentCategoryById(categoryId)
             .orElseThrow(() -> new CustomException("카테고리를 찾을 수 없습니다.", ErrorCode.NOT_FOUND));
     }
 
     private Department getDepartment(Long departmentId) {
         return departmentRepository.findById(departmentId)
             .orElseThrow(() -> new CustomException("담당 부서를 찾을 수 없습니다.", ErrorCode.NOT_FOUND));
-    }
-
-    private void validateCategoryDepartment(ReportCategory category, Department department) {
-        if (!category.getDepartment().getId().equals(department.getId())) {
-            throw new CustomException("카테고리와 담당 부서가 일치하지 않습니다.", ErrorCode.INVALID_PARAMETER);
-        }
     }
 
     private void validateRegistrableCategory(ReportCategory category) {
@@ -940,6 +945,7 @@ public class ReportService {
         if (request.riskScore() == null) {
             throw new CustomException("위험 점수는 필수입니다.", ErrorCode.INVALID_PARAMETER);
         }
+        validateNotBlank("부서 배정 근거", request.assignmentReason());
         if (request.visibility() == null) {
             throw new CustomException("공개 범위는 필수입니다.", ErrorCode.INVALID_PARAMETER);
         }
@@ -1035,13 +1041,38 @@ public class ReportService {
             .orElseThrow(() -> new CustomException("분류된 제보 카테고리를 찾을 수 없습니다.", ErrorCode.NOT_FOUND));
     }
 
+    private Department resolveDepartment(ReportAiAnalyzeResponse aiResponse) {
+        ReportAiAnalyzeResponse.ResolvedAgency resolvedAgency = aiResponse.resolvedAgency();
+        if (resolvedAgency == null || !Boolean.TRUE.equals(resolvedAgency.resolved())) {
+            throw new CustomException("AI가 담당 기관·부서를 배정하지 못했습니다.", ErrorCode.AI_SERVER_RESPONSE_ERROR);
+        }
+
+        String agencyName = stripToNull(resolvedAgency.name());
+        String departmentName = stripToNull(resolvedAgency.department());
+        if (agencyName == null || departmentName == null) {
+            throw new CustomException("AI 담당 기관·부서 응답이 올바르지 않습니다.", ErrorCode.AI_SERVER_RESPONSE_ERROR);
+        }
+
+        return departmentRepository.findByAgencyType_NameAndName(agencyName, departmentName)
+            .orElseThrow(() -> new CustomException("AI가 배정한 담당 기관·부서를 찾을 수 없습니다.", ErrorCode.NOT_FOUND));
+    }
+
+    private String stripToNull(String value) {
+        if (value == null) {
+            return null;
+        }
+        String stripped = value.strip();
+        return stripped.isBlank() ? null : stripped;
+    }
+
     private ReportDraftResponse createReportDraftResponse(
         Long userId,
         ReportDraftRequest request,
         LocalDateTime occurredAt,
         AddressSnapshot address,
         ReportAiAnalyzeResponse aiResponse,
-        ReportCategory category) {
+        ReportCategory category,
+        Department department) {
         LocalDateTime resolvedOccurredAt = aiResponse.occurredAt() == null ? occurredAt : aiResponse.occurredAt();
 
         return new ReportDraftResponse(
@@ -1057,6 +1088,7 @@ public class ReportService {
             address.eupmyeondong(),
             resolvedOccurredAt,
             aiResponse.riskScore(),
+            aiResponse.assignmentReason(),
             ReportStatus.SUBMITTED,
             false,
             ReportVisibility.PUBLIC,
@@ -1066,7 +1098,7 @@ public class ReportService {
             userId,
             category.getId(),
             null,
-            category.getDepartment().getId(),
+            department.getId(),
             aiResponse.embedding()
         );
     }

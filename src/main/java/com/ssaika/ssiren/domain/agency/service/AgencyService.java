@@ -18,7 +18,7 @@ public class AgencyService {
     private final AgencyTypeRepository agencyTypeRepository;
 
     public List<AgencyTypeResponse> getAgencyTypes() {
-        log.info("Get agency types.");
+        log.info("Get agencies.");
 
         return agencyTypeRepository.findAllByOrderByIdAsc()
                 .stream()

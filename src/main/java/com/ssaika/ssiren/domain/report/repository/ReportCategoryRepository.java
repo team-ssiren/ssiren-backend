@@ -9,10 +9,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface ReportCategoryRepository extends JpaRepository<ReportCategory, Long> {
 
-    @EntityGraph(attributePaths = {"department", "parentCategory"})
-    Optional<ReportCategory> findWithDepartmentById(Long id);
+    @EntityGraph(attributePaths = {"parentCategory"})
+    Optional<ReportCategory> findWithParentCategoryById(Long id);
 
-    @EntityGraph(attributePaths = {"department", "department.agencyType", "parentCategory", "parentCategory.department"})
+    @EntityGraph(attributePaths = {"parentCategory"})
     Optional<ReportCategory> findByCategoryCode(String categoryCode);
 
     @EntityGraph(attributePaths = {"parentCategory"})

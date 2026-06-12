@@ -81,71 +81,195 @@ public class DataInitializer implements ApplicationRunner {
     private SeedTemplate saveTemplateDataIfNeeded() {
         List<AgencyType> agencyTypes = agencyTypeRepository.count() == 0
                 ? agencyTypeRepository.saveAll(List.of(
-                        agencyType("지자체"),
-                        agencyType("경찰"),
-                        agencyType("소방")))
+                        agencyType("분당세무서"),
+                        agencyType("분당경찰서"),
+                        agencyType("분당구보건소"),
+                        agencyType("분당동사무소"),
+                        agencyType("판교동사무소"),
+                        agencyType("운중동사무소"),
+                        agencyType("구미동사무소"),
+                        agencyType("구청장사무소"),
+                        agencyType("수내1동사무소"),
+                        agencyType("수내2동사무소"),
+                        agencyType("수내3동사무소"),
+                        agencyType("정자1동사무소"),
+                        agencyType("정자2동사무소"),
+                        agencyType("정자3동사무소"),
+                        agencyType("서현1동사무소"),
+                        agencyType("서현2동사무소"),
+                        agencyType("이매1동사무소"),
+                        agencyType("이매2동사무소"),
+                        agencyType("야탑1동사무소"),
+                        agencyType("야탑2동사무소"),
+                        agencyType("야탑3동사무소"),
+                        agencyType("분당구청"),
+                        agencyType("분당소방서"),
+                        agencyType("서현119안전센터"),
+                        agencyType("판교119안전센터"),
+                        agencyType("수내119안전센터"),
+                        agencyType("야탑119안전센터"),
+                        agencyType("구미119안전센터")))
                 : findAllSorted(agencyTypeRepository);
 
         List<Department> departments = departmentRepository.count() == 0
                 ? departmentRepository.saveAll(List.of(
-                        department("교통행정과", agencyTypes.get(0)),
-                        department("도로관리과", agencyTypes.get(0)),
-                        department("청소행정과", agencyTypes.get(0)),
-                        department("환경과", agencyTypes.get(0)),
-                        department("도시안전과", agencyTypes.get(0)),
-                        department("시설관리과", agencyTypes.get(0)),
-                        department("관할 지구대", agencyTypes.get(1)),
-                        department("복지정책과", agencyTypes.get(0)),
-                        department("119안전센터", agencyTypes.get(2)),
-                        department("민원실", agencyTypes.get(0))))
+                        department("재산세과", agencyTypes.get(0)),
+                        department("조사과", agencyTypes.get(0)),
+                        department("납세자보호담당관", agencyTypes.get(0)),
+                        department("부가가치세과", agencyTypes.get(0)),
+                        department("소득세과", agencyTypes.get(0)),
+                        department("법인세과", agencyTypes.get(0)),
+                        department("징세과", agencyTypes.get(0)),
+                        department("수사2과", agencyTypes.get(1)),
+                        department("수사1과", agencyTypes.get(1)),
+                        department("경무과", agencyTypes.get(1)),
+                        department("여성청소년과", agencyTypes.get(1)),
+                        department("형사과", agencyTypes.get(1)),
+                        department("야탑지구대", agencyTypes.get(1)),
+                        department("서현지구대", agencyTypes.get(1)),
+                        department("금곡지구대", agencyTypes.get(1)),
+                        department("구미파출소", agencyTypes.get(1)),
+                        department("수내파출소", agencyTypes.get(1)),
+                        department("서판교파출소", agencyTypes.get(1)),
+                        department("동판교파출소", agencyTypes.get(1)),
+                        department("청문감사인권관", agencyTypes.get(1)),
+                        department("범죄예방대응과", agencyTypes.get(1)),
+                        department("경비교통과", agencyTypes.get(1)),
+                        department("치안정보안보과", agencyTypes.get(1)),
+                        department("보건행정과", agencyTypes.get(2)),
+                        department("판교보건지소", agencyTypes.get(2)),
+                        department("건강증진과", agencyTypes.get(2)),
+                        department("분당도서관", agencyTypes.get(2)),
+                        department("감염병관리센터", agencyTypes.get(2)),
+                        department("분당동", agencyTypes.get(3)),
+                        department("판교동", agencyTypes.get(4)),
+                        department("운중동", agencyTypes.get(5)),
+                        department("구미동", agencyTypes.get(6)),
+                        department("구청장", agencyTypes.get(7)),
+                        department("수내1동", agencyTypes.get(8)),
+                        department("수내2동", agencyTypes.get(9)),
+                        department("수내3동", agencyTypes.get(10)),
+                        department("정자1동", agencyTypes.get(11)),
+                        department("정자2동", agencyTypes.get(12)),
+                        department("정자3동", agencyTypes.get(13)),
+                        department("서현1동", agencyTypes.get(14)),
+                        department("서현2동", agencyTypes.get(15)),
+                        department("이매1동", agencyTypes.get(16)),
+                        department("이매2동", agencyTypes.get(17)),
+                        department("야탑1동", agencyTypes.get(18)),
+                        department("야탑2동", agencyTypes.get(19)),
+                        department("야탑3동", agencyTypes.get(20)),
+                        department("건축과", agencyTypes.get(21)),
+                        department("도시미관과", agencyTypes.get(21)),
+                        department("경제교통과", agencyTypes.get(21)),
+                        department("금곡동", agencyTypes.get(21)),
+                        department("구미1동", agencyTypes.get(21)),
+                        department("삼평동", agencyTypes.get(21)),
+                        department("세무1과", agencyTypes.get(21)),
+                        department("세무2과", agencyTypes.get(21)),
+                        department("녹지공원과", agencyTypes.get(21)),
+                        department("백현동", agencyTypes.get(21)),
+                        department("시민봉사과", agencyTypes.get(21)),
+                        department("가정복지과", agencyTypes.get(21)),
+                        department("사회복지과", agencyTypes.get(21)),
+                        department("정자동", agencyTypes.get(21)),
+                        department("환경자원과", agencyTypes.get(21)),
+                        department("건설과", agencyTypes.get(21)),
+                        department("구조물관리과", agencyTypes.get(21)),
+                        department("위생안전과", agencyTypes.get(21)),
+                        department("총무과", agencyTypes.get(21)),
+                        department("119구조대", agencyTypes.get(22)),
+                        department("서현119안전센터", agencyTypes.get(23)),
+                        department("판교119안전센터", agencyTypes.get(24)),
+                        department("수내119안전센터", agencyTypes.get(25)),
+                        department("야탑119안전센터", agencyTypes.get(26)),
+                        department("구미119안전센터", agencyTypes.get(27)),
+                        department("소방행정과", agencyTypes.get(22)),
+                        department("재난대응과", agencyTypes.get(22)),
+                        department("현장지휘단", agencyTypes.get(22)),
+                        department("서판교119안전센터", agencyTypes.get(22)),
+                        department("청문인권담당관", agencyTypes.get(22)),
+                        department("화재예방과", agencyTypes.get(22))))
                 : findAllSorted(departmentRepository);
 
         List<ReportCategory> reportCategories = reportCategoryRepository.count() == 0
-                ? saveReportCategoryTemplate(departments)
+                ? saveReportCategoryTemplate()
                 : findAllSorted(reportCategoryRepository);
-        reportCategories = saveInsufficientCategoryIfNeeded(reportCategories, departments);
+        reportCategories = saveInsufficientCategoryIfNeeded(reportCategories);
 
         saveReportCategoryMergeRulesIfNeeded(reportCategories);
 
         return new SeedTemplate(departments, reportCategories);
     }
 
-    private List<ReportCategory> saveReportCategoryTemplate(List<Department> departments) {
+    private List<ReportCategory> saveReportCategoryTemplate() {
         List<ReportCategory> parents = reportCategoryRepository.saveAll(List.of(
-                reportCategory("TRAFFIC", "교통", departments.get(0), null),
-                reportCategory("ENVIRONMENT", "환경", departments.get(3), null),
-                reportCategory("FACILITY", "시설물", departments.get(5), null),
-                reportCategory("LIFE_INCONVENIENCE", "생활불편", departments.get(5), null),
-                reportCategory("PUBLIC_SAFETY", "치안", departments.get(6), null),
-                reportCategory("WELFARE", "복지", departments.get(7), null),
-                reportCategory("DISASTER_SAFETY", "재난안전", departments.get(8), null),
-                reportCategory("ETC", "기타", departments.get(9), null)));
+                reportCategory("TRAFFIC", "교통", null),
+                reportCategory("INFRASTRUCTURE_ROAD", "시설물", null),
+                reportCategory("LIVING_INCONVENIENCE", "생활불편", null),
+                reportCategory("LIFE_SAFETY", "생활안전", null),
+                reportCategory("CONSTRUCTION_SITE", "공사장", null),
+                reportCategory("PUBLIC_ORDER", "치안", null),
+                reportCategory("PUBLIC_HEALTH_WELFARE", "보건복지", null),
+                reportCategory("ETC", "기타", null)));
 
         List<ReportCategory> children = reportCategoryRepository.saveAll(List.of(
-                reportCategory("ILLEGAL_PARKING", "불법주정차", departments.get(0), parents.get(0)),
-                reportCategory("ROAD_DAMAGE", "도로 파손", departments.get(1), parents.get(0)),
-                reportCategory("TRASH_DUMPING", "쓰레기 무단투기", departments.get(2), parents.get(1)),
-                reportCategory("ANIMAL_CARCASS", "동물 사체", departments.get(2), parents.get(1)),
-                reportCategory("NOISE", "소음", departments.get(3), parents.get(1)),
-                reportCategory("STREETLIGHT", "가로등 고장", departments.get(4), parents.get(2)),
-                reportCategory("DANGEROUS_FACILITY", "위험 시설물", departments.get(5), parents.get(2)),
-                reportCategory("FALL_RISK", "낙상 위험", departments.get(5), parents.get(3)),
-                reportCategory("DRUNK_PERSON", "주취자", departments.get(6), parents.get(4)),
-                reportCategory("YOUTH_RISK", "청소년 위험", departments.get(6), parents.get(4)),
-                reportCategory("SUSPICIOUS", "수상한 상황", departments.get(6), parents.get(4)),
-                reportCategory("HOMELESS", "노숙", departments.get(7), parents.get(5)),
-                reportCategory("FIRE_EMERGENCY", "화재/응급", departments.get(8), parents.get(6)),
-                reportCategory("ETC_OTHER", "기타", departments.get(9), parents.get(7)),
-                reportCategory("INSUFFICIENT", "제보 불성립", departments.get(9), parents.get(7))));
+                reportCategory("ILLEGAL_PARKING", "불법주정차", parents.get(0)),
+                reportCategory("TRAFFIC_VIOLATION", "교통위반", parents.get(0)),
+                reportCategory("ABANDONED_VEHICLE", "방치차량", parents.get(0)),
+                reportCategory("PARKING_LOT_ISSUE", "주차장 불편", parents.get(0)),
+                reportCategory("PUBLIC_TRANSPORT_ISSUE", "대중교통 운행 불편", parents.get(0)),
+                reportCategory("ROAD_DAMAGE", "도로 파손", parents.get(1)),
+                reportCategory("ROAD_FACILITY_DAMAGE", "도로시설 파손", parents.get(1)),
+                reportCategory("SIDEWALK_DAMAGE", "보도블록 파손", parents.get(1)),
+                reportCategory("STREETLIGHT_FAILURE", "가로등 고장", parents.get(1)),
+                reportCategory("TRAFFIC_FACILITY_FAILURE", "교통시설물 고장", parents.get(1)),
+                reportCategory("MANHOLE_DRAIN_DAMAGE", "맨홀·배수구 파손", parents.get(1)),
+                reportCategory("PUBLIC_FACILITY_DAMAGE", "공공시설물 파손", parents.get(1)),
+                reportCategory("PUBLIC_USE_FACILITY_SAFETY", "다중이용시설 안전 문제", parents.get(1)),
+                reportCategory("OBSTRUCTION_ACCESS_BLOCKAGE", "장애물·통행 방해", parents.get(1)),
+                reportCategory("AGING_FACILITY_RISK", "노후 시설물 위험", parents.get(1)),
+                reportCategory("PARK_FACILITY_DAMAGE", "공원시설 파손", parents.get(1)),
+                reportCategory("WASTE_AND_DEBRIS", "쓰레기·폐기물", parents.get(2)),
+                reportCategory("ILLEGAL_ADVERTISEMENT", "불법광고물", parents.get(2)),
+                reportCategory("ODOR", "악취", parents.get(2)),
+                reportCategory("NOISE", "소음", parents.get(2)),
+                reportCategory("AIR_POLLUTION_DUST", "대기오염·비산먼지", parents.get(2)),
+                reportCategory("WATER_POLLUTION_WASTEWATER", "수질오염·오폐수", parents.get(2)),
+                reportCategory("ILLEGAL_BURNING", "불법소각", parents.get(2)),
+                reportCategory("LIGHT_POLLUTION", "빛공해", parents.get(2)),
+                reportCategory("PET_NUISANCE", "반려동물 불편", parents.get(2)),
+                reportCategory("FLOODING_RISK", "침수 위험", parents.get(3)),
+                reportCategory("SEWER_BACKFLOW", "하수도 역류", parents.get(3)),
+                reportCategory("RIVER_FACILITY_RISK", "하천 위험", parents.get(3)),
+                reportCategory("BEEHIVE_RISK", "벌집 위험", parents.get(3)),
+                reportCategory("STRAY_OR_DANGEROUS_ANIMAL", "유기동물·위험동물", parents.get(3)),
+                reportCategory("FIRE_RISK", "화재위험", parents.get(3)),
+                reportCategory("GAS_ELECTRIC_RISK", "가스·전기 위험", parents.get(3)),
+                reportCategory("CONSTRUCTION_SAFETY_VIOLATION", "공사장 안전조치 미흡", parents.get(4)),
+                reportCategory("CONSTRUCTION_NOISE", "공사장 소음", parents.get(4)),
+                reportCategory("CONSTRUCTION_CRACK_DAMAGE", "공사로 인한 균열", parents.get(4)),
+                reportCategory("CONSTRUCTION_ACCESS_BLOCKAGE", "공사장 통행 불편", parents.get(4)),
+                reportCategory("INTOXICATED_PERSON_CONCERN", "취객·주취자 불안", parents.get(5)),
+                reportCategory("DISORDERLY_CONDUCT_DISPUTE", "행패소란·시비", parents.get(5)),
+                reportCategory("SUSPICIOUS_ACTIVITY", "범죄의심·방범불안", parents.get(5)),
+                reportCategory("ILLEGAL_FILMING_SUSPICION", "불법촬영 의심", parents.get(5)),
+                reportCategory("YOUTH_DELINQUENCY_DISTURBANCE", "청소년 비행·집단소란", parents.get(5)),
+                reportCategory("ACCESSIBILITY_FACILITY_ISSUE", "장애인 편의시설 불편", parents.get(6)),
+                reportCategory("PUBLIC_HYGIENE_ISSUE", "공중위생 불량", parents.get(6)),
+                reportCategory("FOOD_HYGIENE_REPORT", "식품위생 신고", parents.get(6)),
+                reportCategory("PEST_CONTROL_ISSUE", "해충 문제", parents.get(6)),
+                reportCategory("VULNERABLE_PERSON_RISK", "노약자 위험 상황", parents.get(6)),
+                reportCategory("YOUTH_RISK_ENVIRONMENT", "청소년 위험 환경", parents.get(6)),
+                reportCategory("ETC_OTHER", "기타", parents.get(7)),
+                reportCategory("INSUFFICIENT", "제보 불성립", parents.get(7))));
 
         List<ReportCategory> categories = new ArrayList<>(parents);
         categories.addAll(children);
         return categories;
     }
 
-    private List<ReportCategory> saveInsufficientCategoryIfNeeded(
-            List<ReportCategory> reportCategories,
-            List<Department> departments) {
+    private List<ReportCategory> saveInsufficientCategoryIfNeeded(List<ReportCategory> reportCategories) {
         boolean exists = reportCategories.stream()
                 .anyMatch(category -> "INSUFFICIENT".equals(category.getCategoryCode()));
         if (exists) {
@@ -156,12 +280,8 @@ public class DataInitializer implements ApplicationRunner {
                 .filter(category -> "ETC".equals(category.getCategoryCode()))
                 .findFirst()
                 .orElseThrow(() -> new IllegalStateException("Seed category not found: ETC"));
-        Department department = departments.stream()
-                .filter(value -> "민원실".equals(value.getName()))
-                .findFirst()
-                .orElseThrow(() -> new IllegalStateException("Seed department not found: 민원실"));
         ReportCategory insufficient = reportCategoryRepository.save(
-                reportCategory("INSUFFICIENT", "제보 불성립", department, parent));
+                reportCategory("INSUFFICIENT", "제보 불성립", parent));
 
         List<ReportCategory> categories = new ArrayList<>(reportCategories);
         categories.add(insufficient);
@@ -177,18 +297,52 @@ public class DataInitializer implements ApplicationRunner {
         SeedTemplate template = new SeedTemplate(List.of(), reportCategories);
         reportCategoryMergeRuleRepository.saveAll(List.of(
                 mergeRule(template.categoryByCode("ILLEGAL_PARKING"), 30, 100, "0.80", "80"),
+                mergeRule(template.categoryByCode("TRAFFIC_VIOLATION"), 50, 150, "0.80", "82"),
+                mergeRule(template.categoryByCode("ABANDONED_VEHICLE"), 50, 150, "0.78", "80"),
+                mergeRule(template.categoryByCode("PARKING_LOT_ISSUE"), 80, 200, "0.76", "82"),
+                mergeRule(template.categoryByCode("PUBLIC_TRANSPORT_ISSUE"), 150, 500, "0.74", "85"),
                 mergeRule(template.categoryByCode("ROAD_DAMAGE"), 50, 120, "0.78", "80"),
-                mergeRule(template.categoryByCode("TRASH_DUMPING"), 50, 120, "0.78", "80"),
-                mergeRule(template.categoryByCode("ANIMAL_CARCASS"), 30, 80, "0.80", "80"),
+                mergeRule(template.categoryByCode("ROAD_FACILITY_DAMAGE"), 50, 150, "0.78", "80"),
+                mergeRule(template.categoryByCode("SIDEWALK_DAMAGE"), 40, 100, "0.80", "80"),
+                mergeRule(template.categoryByCode("STREETLIGHT_FAILURE"), 20, 50, "0.82", "80"),
+                mergeRule(template.categoryByCode("TRAFFIC_FACILITY_FAILURE"), 30, 80, "0.80", "80"),
+                mergeRule(template.categoryByCode("MANHOLE_DRAIN_DAMAGE"), 30, 80, "0.80", "80"),
+                mergeRule(template.categoryByCode("PUBLIC_FACILITY_DAMAGE"), 50, 150, "0.78", "80"),
+                mergeRule(template.categoryByCode("PUBLIC_USE_FACILITY_SAFETY"), 60, 200, "0.77", "82"),
+                mergeRule(template.categoryByCode("OBSTRUCTION_ACCESS_BLOCKAGE"), 50, 120, "0.78", "80"),
+                mergeRule(template.categoryByCode("AGING_FACILITY_RISK"), 80, 250, "0.76", "82"),
+                mergeRule(template.categoryByCode("PARK_FACILITY_DAMAGE"), 60, 180, "0.78", "80"),
+                mergeRule(template.categoryByCode("WASTE_AND_DEBRIS"), 50, 120, "0.78", "80"),
+                mergeRule(template.categoryByCode("ILLEGAL_ADVERTISEMENT"), 30, 100, "0.80", "80"),
+                mergeRule(template.categoryByCode("ODOR"), 150, 400, "0.75", "82"),
                 mergeRule(template.categoryByCode("NOISE"), 150, 400, "0.75", "82"),
-                mergeRule(template.categoryByCode("STREETLIGHT"), 20, 50, "0.82", "80"),
-                mergeRule(template.categoryByCode("DANGEROUS_FACILITY"), 50, 150, "0.78", "80"),
-                mergeRule(template.categoryByCode("FALL_RISK"), 50, 120, "0.78", "80"),
-                mergeRule(template.categoryByCode("DRUNK_PERSON"), 80, 200, "0.78", "82"),
-                mergeRule(template.categoryByCode("YOUTH_RISK"), 100, 250, "0.76", "82"),
-                mergeRule(template.categoryByCode("SUSPICIOUS"), 100, 250, "0.76", "82"),
-                mergeRule(template.categoryByCode("HOMELESS"), 100, 300, "0.75", "82"),
-                mergeRule(template.categoryByCode("FIRE_EMERGENCY"), 150, 500, "0.70", "85"),
+                mergeRule(template.categoryByCode("AIR_POLLUTION_DUST"), 200, 600, "0.73", "84"),
+                mergeRule(template.categoryByCode("WATER_POLLUTION_WASTEWATER"), 150, 500, "0.74", "84"),
+                mergeRule(template.categoryByCode("ILLEGAL_BURNING"), 100, 300, "0.76", "84"),
+                mergeRule(template.categoryByCode("LIGHT_POLLUTION"), 150, 400, "0.75", "82"),
+                mergeRule(template.categoryByCode("PET_NUISANCE"), 100, 250, "0.76", "82"),
+                mergeRule(template.categoryByCode("FLOODING_RISK"), 150, 500, "0.72", "84"),
+                mergeRule(template.categoryByCode("SEWER_BACKFLOW"), 50, 150, "0.78", "82"),
+                mergeRule(template.categoryByCode("RIVER_FACILITY_RISK"), 150, 500, "0.74", "84"),
+                mergeRule(template.categoryByCode("BEEHIVE_RISK"), 30, 80, "0.82", "80"),
+                mergeRule(template.categoryByCode("STRAY_OR_DANGEROUS_ANIMAL"), 30, 80, "0.80", "80"),
+                mergeRule(template.categoryByCode("FIRE_RISK"), 150, 500, "0.70", "85"),
+                mergeRule(template.categoryByCode("GAS_ELECTRIC_RISK"), 80, 250, "0.76", "85"),
+                mergeRule(template.categoryByCode("CONSTRUCTION_SAFETY_VIOLATION"), 80, 250, "0.76", "82"),
+                mergeRule(template.categoryByCode("CONSTRUCTION_NOISE"), 150, 400, "0.75", "82"),
+                mergeRule(template.categoryByCode("CONSTRUCTION_CRACK_DAMAGE"), 80, 250, "0.77", "82"),
+                mergeRule(template.categoryByCode("CONSTRUCTION_ACCESS_BLOCKAGE"), 50, 150, "0.78", "80"),
+                mergeRule(template.categoryByCode("INTOXICATED_PERSON_CONCERN"), 80, 200, "0.78", "82"),
+                mergeRule(template.categoryByCode("DISORDERLY_CONDUCT_DISPUTE"), 80, 200, "0.78", "82"),
+                mergeRule(template.categoryByCode("SUSPICIOUS_ACTIVITY"), 100, 250, "0.76", "82"),
+                mergeRule(template.categoryByCode("ILLEGAL_FILMING_SUSPICION"), 50, 150, "0.82", "88"),
+                mergeRule(template.categoryByCode("YOUTH_DELINQUENCY_DISTURBANCE"), 100, 250, "0.76", "82"),
+                mergeRule(template.categoryByCode("ACCESSIBILITY_FACILITY_ISSUE"), 50, 150, "0.78", "82"),
+                mergeRule(template.categoryByCode("PUBLIC_HYGIENE_ISSUE"), 80, 250, "0.76", "82"),
+                mergeRule(template.categoryByCode("FOOD_HYGIENE_REPORT"), 30, 100, "0.80", "85"),
+                mergeRule(template.categoryByCode("PEST_CONTROL_ISSUE"), 80, 250, "0.76", "82"),
+                mergeRule(template.categoryByCode("VULNERABLE_PERSON_RISK"), 100, 300, "0.75", "82"),
+                mergeRule(template.categoryByCode("YOUTH_RISK_ENVIRONMENT"), 100, 250, "0.76", "82"),
                 mergeRule(template.categoryByCode("ETC_OTHER"), 30, 80, "0.85", "90")));
     }
 
@@ -221,15 +375,15 @@ public class DataInitializer implements ApplicationRunner {
 
     private List<Report> createReports(List<User> citizens, List<IssueGroup> issueGroups, SeedTemplate template) {
         return List.of(
-                report("보도블록이 내려앉아 발목을 접질릴 뻔했습니다.", "보도블록 파손", "37.5008010", "127.0366220", "서울 강남구 테헤란로 152", "서울 강남구 역삼동 737", citizens.get(0), template.categoryByCode("ROAD_DAMAGE"), issueGroups.get(0), ReportStatus.SUBMITTED, true),
-                report("비 오는 날마다 같은 보도블록 구간에 물이 고입니다.", "침하된 보도블록", "37.5009120", "127.0367010", "서울 강남구 테헤란로 156", "서울 강남구 역삼동 738", citizens.get(1), template.categoryByCode("ROAD_DAMAGE"), issueGroups.get(0), ReportStatus.CHECKING, false),
-                report("파손 구간 옆 안내 표시가 없어 야간에 위험합니다.", "보행 안전 표시 필요", "37.5007550", "127.0365900", "서울 강남구 테헤란로 150", "서울 강남구 역삼동 736", citizens.get(2), template.categoryByCode("FALL_RISK"), issueGroups.get(0), ReportStatus.IN_PROGRESS, false),
-                report("퇴근길마다 같은 위치에 생활 쓰레기가 쌓입니다.", "쓰레기 무단투기", "37.5129130", "127.0563770", "서울 강남구 영동대로 513", "서울 강남구 삼성동 159", citizens.get(0), template.categoryByCode("TRASH_DUMPING"), issueGroups.get(1), ReportStatus.RECEIVED, true),
-                report("상가 뒤편에 종량제 봉투가 아닌 폐기물이 방치되어 있습니다.", "폐기물 방치", "37.5128700", "127.0564450", "서울 강남구 영동대로 517", "서울 강남구 삼성동 160", citizens.get(1), template.categoryByCode("TRASH_DUMPING"), issueGroups.get(1), ReportStatus.SUBMITTED, false),
-                report("음식물 쓰레기 냄새가 골목 전체로 퍼지고 있습니다.", "음식물 쓰레기 적치", "37.5129910", "127.0564910", "서울 강남구 영동대로 519", "서울 강남구 삼성동 161", citizens.get(2), template.categoryByCode("NOISE"), issueGroups.get(1), ReportStatus.IN_PROGRESS, false),
-                report("어린이보호구역 횡단보도 앞 불법주정차입니다.", "불법주정차", "37.5112210", "127.0285960", "서울 강남구 학동로 120", "서울 강남구 논현동 142", citizens.get(0), template.categoryByCode("ILLEGAL_PARKING"), issueGroups.get(2), ReportStatus.CHECKING, true),
-                report("등교 시간에 횡단보도 모퉁이를 차량이 막고 있습니다.", "보호구역 시야 방해", "37.5113180", "127.0286640", "서울 강남구 학동로 124", "서울 강남구 논현동 143", citizens.get(1), template.categoryByCode("ILLEGAL_PARKING"), issueGroups.get(2), ReportStatus.RECEIVED, false),
-                report("어린이집 앞 정차 차량으로 보행 동선이 막힙니다.", "어린이집 앞 정차", "37.5111760", "127.0285480", "서울 강남구 학동로 118", "서울 강남구 논현동 141", citizens.get(2), template.categoryByCode("ILLEGAL_PARKING"), issueGroups.get(2), ReportStatus.SUBMITTED, false));
+                report("보도블록이 내려앉아 발목을 접질릴 뻔했습니다.", "보도블록 파손", "37.5008010", "127.0366220", "서울 강남구 테헤란로 152", "서울 강남구 역삼동 737", citizens.get(0), template.categoryByCode("ROAD_DAMAGE"), template.departmentByName("분당구청", "건설과"), issueGroups.get(0), ReportStatus.SUBMITTED, true),
+                report("비 오는 날마다 같은 보도블록 구간에 물이 고입니다.", "침하된 보도블록", "37.5009120", "127.0367010", "서울 강남구 테헤란로 156", "서울 강남구 역삼동 738", citizens.get(1), template.categoryByCode("ROAD_DAMAGE"), template.departmentByName("분당구청", "건설과"), issueGroups.get(0), ReportStatus.CHECKING, false),
+                report("파손 구간 옆 안내 표시가 없어 야간에 위험합니다.", "보행 안전 표시 필요", "37.5007550", "127.0365900", "서울 강남구 테헤란로 150", "서울 강남구 역삼동 736", citizens.get(2), template.categoryByCode("ROAD_DAMAGE"), template.departmentByName("분당구청", "건설과"), issueGroups.get(0), ReportStatus.IN_PROGRESS, false),
+                report("퇴근길마다 같은 위치에 생활 쓰레기가 쌓입니다.", "쓰레기 무단투기", "37.5129130", "127.0563770", "서울 강남구 영동대로 513", "서울 강남구 삼성동 159", citizens.get(0), template.categoryByCode("WASTE_AND_DEBRIS"), template.departmentByName("분당구청", "환경자원과"), issueGroups.get(1), ReportStatus.RECEIVED, true),
+                report("상가 뒤편에 종량제 봉투가 아닌 폐기물이 방치되어 있습니다.", "폐기물 방치", "37.5128700", "127.0564450", "서울 강남구 영동대로 517", "서울 강남구 삼성동 160", citizens.get(1), template.categoryByCode("WASTE_AND_DEBRIS"), template.departmentByName("분당구청", "환경자원과"), issueGroups.get(1), ReportStatus.SUBMITTED, false),
+                report("음식물 쓰레기 냄새가 골목 전체로 퍼지고 있습니다.", "음식물 쓰레기 적치", "37.5129910", "127.0564910", "서울 강남구 영동대로 519", "서울 강남구 삼성동 161", citizens.get(2), template.categoryByCode("WASTE_AND_DEBRIS"), template.departmentByName("분당구청", "환경자원과"), issueGroups.get(1), ReportStatus.IN_PROGRESS, false),
+                report("어린이보호구역 횡단보도 앞 불법주정차입니다.", "불법주정차", "37.5112210", "127.0285960", "서울 강남구 학동로 120", "서울 강남구 논현동 142", citizens.get(0), template.categoryByCode("ILLEGAL_PARKING"), template.departmentByName("분당구청", "경제교통과"), issueGroups.get(2), ReportStatus.CHECKING, true),
+                report("등교 시간에 횡단보도 모퉁이를 차량이 막고 있습니다.", "보호구역 시야 방해", "37.5113180", "127.0286640", "서울 강남구 학동로 124", "서울 강남구 논현동 143", citizens.get(1), template.categoryByCode("ILLEGAL_PARKING"), template.departmentByName("분당구청", "경제교통과"), issueGroups.get(2), ReportStatus.RECEIVED, false),
+                report("어린이집 앞 정차 차량으로 보행 동선이 막힙니다.", "어린이집 앞 정차", "37.5111760", "127.0285480", "서울 강남구 학동로 118", "서울 강남구 논현동 141", citizens.get(2), template.categoryByCode("ILLEGAL_PARKING"), template.departmentByName("분당구청", "경제교통과"), issueGroups.get(2), ReportStatus.SUBMITTED, false));
     }
 
     private void saveUserChildren(List<User> users, List<User> operators, List<Department> departments) {
@@ -244,9 +398,9 @@ public class DataInitializer implements ApplicationRunner {
 
         List<OfficerDepartment> officerDepartments = new ArrayList<>();
         for (User operator : operators) {
-            officerDepartments.add(officerDepartment(operator, departments.get(0)));
-            officerDepartments.add(officerDepartment(operator, departments.get(4)));
-            officerDepartments.add(officerDepartment(operator, departments.get(9)));
+            officerDepartments.add(officerDepartment(operator, departmentByName(departments, "분당구청", "건설과")));
+            officerDepartments.add(officerDepartment(operator, departmentByName(departments, "분당구청", "환경자원과")));
+            officerDepartments.add(officerDepartment(operator, departmentByName(departments, "분당구청", "경제교통과")));
         }
 
         userConsentRepository.saveAll(consents);
@@ -320,11 +474,19 @@ public class DataInitializer implements ApplicationRunner {
                 .get();
     }
 
-    private ReportCategory reportCategory(String code, String name, Department department, ReportCategory parent) {
+    private Department departmentByName(List<Department> departments, String agencyName, String departmentName) {
+        return departments.stream()
+                .filter(department -> departmentName.equals(department.getName()))
+                .filter(department -> agencyName.equals(department.getAgencyType().getName()))
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException(
+                        "Seed department not found: " + agencyName + " / " + departmentName));
+    }
+
+    private ReportCategory reportCategory(String code, String name, ReportCategory parent) {
         return entity(ReportCategory.class)
                 .set("categoryCode", code)
                 .set("categoryName", name)
-                .set("department", department)
                 .set("parentCategory", parent)
                 .get();
     }
@@ -402,6 +564,7 @@ public class DataInitializer implements ApplicationRunner {
             String jibunAddress,
             User user,
             ReportCategory category,
+            Department department,
             IssueGroup issueGroup,
             ReportStatus status,
             boolean representative) {
@@ -418,6 +581,7 @@ public class DataInitializer implements ApplicationRunner {
                 .set("eupmyeondong", "역삼동")
                 .set("occurredAt", LocalDateTime.now().minusHours(4))
                 .set("riskScore", new BigDecimal("64.50"))
+                .set("assignmentReason", "초기 더미 데이터용 담당 부서 배정 근거입니다.")
                 .set("status", status)
                 .set("visibility", ReportVisibility.PUBLIC)
                 .set("isDeleted", false)
@@ -425,7 +589,7 @@ public class DataInitializer implements ApplicationRunner {
                 .set("user", user)
                 .set("category", category)
                 .set("issueGroup", issueGroup)
-                .set("department", category.getDepartment())
+                .set("department", department)
                 .get();
     }
 
@@ -556,6 +720,15 @@ public class DataInitializer implements ApplicationRunner {
                     .filter(category -> categoryCode.equals(category.getCategoryCode()))
                     .findFirst()
                     .orElseThrow(() -> new IllegalStateException("Seed category not found: " + categoryCode));
+        }
+
+        private Department departmentByName(String agencyName, String departmentName) {
+            return departments.stream()
+                    .filter(department -> departmentName.equals(department.getName()))
+                    .filter(department -> agencyName.equals(department.getAgencyType().getName()))
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalStateException(
+                            "Seed department not found: " + agencyName + " / " + departmentName));
         }
     }
 

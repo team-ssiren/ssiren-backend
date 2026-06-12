@@ -73,6 +73,9 @@ public class Report extends BaseTime {
     @Column(name = "risk_score", nullable = false, precision = 5, scale = 2)
     private BigDecimal riskScore;
 
+    @Column(name = "assignment_reason", columnDefinition = "text")
+    private String assignmentReason;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private ReportStatus status;
@@ -115,6 +118,7 @@ public class Report extends BaseTime {
         String eupmyeondong,
         LocalDateTime occurredAt,
         BigDecimal riskScore,
+        String assignmentReason,
         ReportVisibility visibility,
         String embedding,
         Boolean isRepresentative,
@@ -134,6 +138,7 @@ public class Report extends BaseTime {
             .eupmyeondong(eupmyeondong)
             .occurredAt(occurredAt)
             .riskScore(riskScore)
+            .assignmentReason(assignmentReason)
             .status(ReportStatus.SUBMITTED)
             .visibility(visibility)
             .embedding(embedding)

@@ -12,11 +12,14 @@ public record ReportAiAnalyzeResponse(
     Category category,
     BigDecimal riskScore,
     Analysis analysis,
+    String assignmentReason,
     LocalDateTime occurredAt,
-    List<BigDecimal> embedding
+    List<BigDecimal> embedding,
+    ResolvedAgency resolvedAgency
 ) {
 
     public record Category(
+        String majorCode,
         String categoryCode,
         BigDecimal confidence
     ) {
@@ -39,6 +42,15 @@ public record ReportAiAnalyzeResponse(
     public record EmergencyGuide(
         Boolean isEmergency,
         String message
+    ) {
+    }
+
+    public record ResolvedAgency(
+        String agencyType,
+        String department,
+        String name,
+        String phone,
+        Boolean resolved
     ) {
     }
 }

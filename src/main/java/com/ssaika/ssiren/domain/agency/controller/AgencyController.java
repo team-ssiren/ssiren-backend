@@ -25,6 +25,6 @@ public class AgencyController {
                 agencyService.getAgencyTypes()
         );
 
-        return ResponseEntity.ok(BaseResponse.success("처리 기관 타입 목록 조회 성공", response));
+        return ResponseEntity.ok(BaseResponse.success("처리 기관 목록 조회 성공", response));
     }
 }

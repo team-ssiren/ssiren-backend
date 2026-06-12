@@ -9,6 +9,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface ChatbotMessageRepository extends JpaRepository<ChatbotMessage, Long> {
 
+    long countBySession_Id(Long sessionId);
+
     List<ChatbotMessage> findAllBySession_IdOrderByIdDesc(Long sessionId, Pageable pageable);
 
     List<ChatbotMessage> findAllBySession_IdAndIdLessThanOrderByIdDesc(Long sessionId, Long cursor,

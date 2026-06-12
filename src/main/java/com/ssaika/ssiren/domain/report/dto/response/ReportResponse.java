@@ -21,6 +21,7 @@ public record ReportResponse(
     String eupmyeondong,
     LocalDateTime occurredAt,
     BigDecimal riskScore,
+    String assignmentReason,
     ReportStatus status,
     Boolean isRepresentative,
     ReportVisibility visibility,
@@ -30,7 +31,10 @@ public record ReportResponse(
     Long userId,
     Long categoryId,
     Long issueGroupId,
-    Long departmentId
+    Long departmentId,
+    String departmentName,
+    Long agencyTypeId,
+    String agencyTypeName
 ) {
 
     public static ReportResponse from(Report report, ObjectMapper objectMapper) {
@@ -47,6 +51,7 @@ public record ReportResponse(
             report.getEupmyeondong(),
             report.getOccurredAt(),
             report.getRiskScore(),
+            report.getAssignmentReason(),
             report.getStatus(),
             report.getIsRepresentative(),
             report.getVisibility(),
@@ -56,7 +61,10 @@ public record ReportResponse(
             report.getUser().getId(),
             report.getCategory().getId(),
             report.getIssueGroup().getId(),
-            report.getDepartment().getId()
+            report.getDepartment().getId(),
+            report.getDepartment().getName(),
+            report.getDepartment().getAgencyType().getId(),
+            report.getDepartment().getAgencyType().getName()
         );
     }
 
