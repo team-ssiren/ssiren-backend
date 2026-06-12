@@ -41,4 +41,31 @@ public interface IssueGroupTransferHistoryRepository
             Collection<Long> targetDepartmentIds,
             IssueGroupTransferHistoryStatus status
     );
+
+    @EntityGraph(attributePaths = {
+            "issueGroup",
+            "fromDepartment",
+            "fromDepartment.agencyType",
+            "targetDepartment",
+            "targetDepartment.agencyType",
+            "requestUser",
+            "responseUser"
+    })
+    List<IssueGroupTransferHistory> findByRequestUser_IdOrderByCreatedAtDesc(
+            Long requestUserId
+    );
+
+    @EntityGraph(attributePaths = {
+            "issueGroup",
+            "fromDepartment",
+            "fromDepartment.agencyType",
+            "targetDepartment",
+            "targetDepartment.agencyType",
+            "requestUser",
+            "responseUser"
+    })
+    List<IssueGroupTransferHistory> findByRequestUser_IdAndStatusOrderByCreatedAtDesc(
+            Long requestUserId,
+            IssueGroupTransferHistoryStatus status
+    );
 }

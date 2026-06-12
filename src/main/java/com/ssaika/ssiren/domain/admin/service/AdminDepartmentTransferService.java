@@ -144,6 +144,27 @@ public class AdminDepartmentTransferService {
         );
     }
 
+    public AdminIssueGroupTransferHistoryListResponse getSentIssueGroupTransferRequests(
+            Long userId,
+            IssueGroupTransferHistoryStatus status
+    ) {
+        validateAuthenticatedUser(userId);
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND.getMessage(),
+                        ErrorCode.USER_NOT_FOUND));
+        validateOfficer(user);
+
+        List<IssueGroupTransferHistory> histories = status == null
+                ? issueGroupTransferHistoryRepository.findByRequestUser_IdOrderByCreatedAtDesc(user.getId())
+                : issueGroupTransferHistoryRepository.findByRequestUser_IdAndStatusOrderByCreatedAtDesc(
+                user.getId(),
+                status
+        );
+
+        return AdminIssueGroupTransferHistoryListResponse.from(histories);
+    }
+
     private AdminIssueGroupTransferHistoryResponse acceptIssueGroupTransferRequest(
             Long userId,
             Long transferId,

@@ -5,18 +5,13 @@ import com.ssaika.ssiren.domain.admin.dto.request.AdminIssueGroupTransferDecisio
 import com.ssaika.ssiren.domain.admin.dto.response.AdminIssueGroupTransferHistoryListResponse;
 import com.ssaika.ssiren.domain.admin.dto.response.AdminIssueGroupTransferHistoryResponse;
 import com.ssaika.ssiren.domain.admin.service.AdminDepartmentTransferService;
+import com.ssaika.ssiren.domain.report.entity.IssueGroupTransferHistoryStatus;
 import com.ssaika.ssiren.global.dto.BaseResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
@@ -57,5 +52,16 @@ public class AdminIssueGroupTransferController {
                 adminDepartmentTransferService.decideIssueGroupTransferRequest(userId, transferId, request);
 
         return ResponseEntity.ok(BaseResponse.success("이슈 그룹 이관 요청 응답 성공", response));
+    }
+
+    @GetMapping("/transfer-requests/sent")
+    public ResponseEntity<BaseResponse<AdminIssueGroupTransferHistoryListResponse>> getSentTransferRequests(
+            @AuthenticationPrincipal Long userId,
+            @RequestParam(required = false) IssueGroupTransferHistoryStatus status
+    ) {
+        AdminIssueGroupTransferHistoryListResponse response =
+                adminDepartmentTransferService.getSentIssueGroupTransferRequests(userId, status);
+
+        return ResponseEntity.ok(BaseResponse.success("내가 신청한 이관 요청 목록 조회 성공", response));
     }
 }
