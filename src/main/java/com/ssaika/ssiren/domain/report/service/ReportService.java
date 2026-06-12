@@ -268,6 +268,11 @@ public class ReportService {
         }
 
         List<Report> groupReports = reportsByIssueGroup.getOrDefault(issueGroup.getId(), List.of());
+        if (groupReports.stream()
+            .anyMatch(report -> !Objects.equals(report.getDepartment().getId(), request.departmentId()))) {
+            return null;
+        }
+
         BigDecimal newGroupDiameter = calculateNewGroupDiameter(request, issueGroup, groupReports);
         BigDecimal maxGroupDiameter = BigDecimal.valueOf(mergeRule.getMaxGroupDiameterMeters());
         if (newGroupDiameter.compareTo(maxGroupDiameter) > 0) {

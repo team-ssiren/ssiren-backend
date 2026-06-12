@@ -9,7 +9,9 @@ public record IssueDetailResponse(
     ReportIssueGroupResponse issueGroup,
     ReportResponse representativeReport,
     List<ReportResponse> reports,
-    ReportCategoryResponse category
+    ReportCategoryResponse category,
+    ReportDepartmentResponse department,
+    ReportAgencyTypeResponse agencyType
 ) {
 
     public static IssueDetailResponse from(
@@ -23,7 +25,10 @@ public record IssueDetailResponse(
             reports.stream()
                 .map(report -> ReportResponse.from(report, objectMapper))
                 .toList(),
-            representativeReport == null ? null : ReportCategoryResponse.from(representativeReport.getCategory())
+            representativeReport == null ? null : ReportCategoryResponse.from(representativeReport.getCategory()),
+            representativeReport == null ? null : ReportDepartmentResponse.from(representativeReport.getDepartment()),
+            representativeReport == null ? null
+                : ReportAgencyTypeResponse.from(representativeReport.getDepartment().getAgencyType())
         );
     }
 }

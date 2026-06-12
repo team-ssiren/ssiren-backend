@@ -9,7 +9,9 @@ public record ReportListResponse(
     ReportResponse report,
     List<ReportImageResponse> reportImages,
     ReportCategoryResponse category,
-    ReportIssueGroupResponse issueGroup
+    ReportIssueGroupResponse issueGroup,
+    ReportDepartmentResponse department,
+    ReportAgencyTypeResponse agencyType
 ) {
 
     public static ReportListResponse from(
@@ -22,7 +24,9 @@ public record ReportListResponse(
                 .map(ReportImageResponse::from)
                 .toList(),
             ReportCategoryResponse.from(report.getCategory()),
-            ReportIssueGroupResponse.from(report.getIssueGroup())
+            ReportIssueGroupResponse.from(report.getIssueGroup()),
+            ReportDepartmentResponse.from(report.getDepartment()),
+            ReportAgencyTypeResponse.from(report.getDepartment().getAgencyType())
         );
     }
 }
