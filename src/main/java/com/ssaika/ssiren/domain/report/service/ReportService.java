@@ -123,8 +123,8 @@ public class ReportService {
             ),
             ReportCategoryResponse.from(category),
             category.getParentCategory() == null ? null : ReportCategoryResponse.from(category.getParentCategory()),
-            ReportDepartmentResponse.from(category.getDepartment()),
-            ReportAgencyTypeResponse.from(category.getDepartment().getAgencyType()),
+            null,
+            null,
             ReportAiAnalysisResponse.from(aiResponse.analysis())
         );
     }
@@ -151,7 +151,6 @@ public class ReportService {
         ReportCategory category = getReportCategory(request.categoryId());
         validateRegistrableCategory(category);
         Department department = getDepartment(request.departmentId());
-        validateCategoryDepartment(category, department);
 
         IssueGroup issueGroup = resolveIssueGroupForCreate(request);
 
@@ -773,19 +772,13 @@ public class ReportService {
             return null;
         }
 
-        return reportCategoryRepository.findWithDepartmentById(categoryId)
+        return reportCategoryRepository.findWithParentCategoryById(categoryId)
             .orElseThrow(() -> new CustomException("카테고리를 찾을 수 없습니다.", ErrorCode.NOT_FOUND));
     }
 
     private Department getDepartment(Long departmentId) {
         return departmentRepository.findById(departmentId)
             .orElseThrow(() -> new CustomException("담당 부서를 찾을 수 없습니다.", ErrorCode.NOT_FOUND));
-    }
-
-    private void validateCategoryDepartment(ReportCategory category, Department department) {
-        if (!category.getDepartment().getId().equals(department.getId())) {
-            throw new CustomException("카테고리와 담당 부서가 일치하지 않습니다.", ErrorCode.INVALID_PARAMETER);
-        }
     }
 
     private void validateRegistrableCategory(ReportCategory category) {
@@ -1066,7 +1059,7 @@ public class ReportService {
             userId,
             category.getId(),
             null,
-            category.getDepartment().getId(),
+            null,
             aiResponse.embedding()
         );
     }

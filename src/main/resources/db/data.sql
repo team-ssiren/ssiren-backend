@@ -1,74 +1,183 @@
--- 기관 타입
+-- 기관
 INSERT INTO agency_type (id, name)
 VALUES
-    (1, '지자체'),
-    (2, '경찰'),
-    (3, '소방');
+    (1, '분당세무서'),
+    (2, '분당경찰서'),
+    (3, '분당구보건소'),
+    (4, '분당동사무소'),
+    (5, '판교동사무소'),
+    (6, '운중동사무소'),
+    (7, '구미동사무소'),
+    (8, '구청장사무소'),
+    (9, '수내1동사무소'),
+    (10, '수내2동사무소'),
+    (11, '수내3동사무소'),
+    (12, '정자1동사무소'),
+    (13, '정자2동사무소'),
+    (14, '정자3동사무소'),
+    (15, '서현1동사무소'),
+    (16, '서현2동사무소'),
+    (17, '이매1동사무소'),
+    (18, '이매2동사무소'),
+    (19, '야탑1동사무소'),
+    (20, '야탑2동사무소'),
+    (21, '야탑3동사무소'),
+    (22, '분당구청'),
+    (23, '분당소방서'),
+    (24, '서현119안전센터'),
+    (25, '판교119안전센터'),
+    (26, '수내119안전센터'),
+    (27, '야탑119안전센터'),
+    (28, '구미119안전센터');
 
 
 -- 부서
 INSERT INTO departments (id, name, agency_type_id)
 VALUES
-    (1,  '교통행정과', 1),
-    (2,  '도로관리과', 1),
-    (3,  '청소행정과', 1),
-    (4,  '환경과', 1),
-    (5,  '도시안전과', 1),
-    (6,  '시설관리과', 1),
-    (7,  '관할 지구대', 2),
-    (8,  '복지정책과', 1),
-    (9,  '119안전센터', 3),
-    (10, '민원실', 1);
+    (1, '재산세과', 1),
+    (2, '조사과', 1),
+    (3, '납세자보호담당관', 1),
+    (4, '부가가치세과', 1),
+    (5, '소득세과', 1),
+    (6, '법인세과', 1),
+    (7, '징세과', 1),
+    (8, '수사2과', 2),
+    (9, '수사1과', 2),
+    (10, '경무과', 2),
+    (11, '여성청소년과', 2),
+    (12, '형사과', 2),
+    (13, '야탑지구대', 2),
+    (14, '서현지구대', 2),
+    (15, '금곡지구대', 2),
+    (16, '구미파출소', 2),
+    (17, '수내파출소', 2),
+    (18, '서판교파출소', 2),
+    (19, '동판교파출소', 2),
+    (20, '청문감사인권관', 2),
+    (21, '범죄예방대응과', 2),
+    (22, '경비교통과', 2),
+    (23, '치안정보안보과', 2),
+    (24, '보건행정과', 3),
+    (25, '판교보건지소', 3),
+    (26, '건강증진과', 3),
+    (27, '분당도서관', 3),
+    (28, '감염병관리센터', 3),
+    (29, '분당동', 4),
+    (30, '판교동', 5),
+    (31, '운중동', 6),
+    (32, '구미동', 7),
+    (33, '구청장', 8),
+    (34, '수내1동', 9),
+    (35, '수내2동', 10),
+    (36, '수내3동', 11),
+    (37, '정자1동', 12),
+    (38, '정자2동', 13),
+    (39, '정자3동', 14),
+    (40, '서현1동', 15),
+    (41, '서현2동', 16),
+    (42, '이매1동', 17),
+    (43, '이매2동', 18),
+    (44, '야탑1동', 19),
+    (45, '야탑2동', 20),
+    (46, '야탑3동', 21),
+    (47, '건축과', 22),
+    (48, '도시미관과', 22),
+    (49, '경제교통과', 22),
+    (50, '금곡동', 22),
+    (51, '구미1동', 22),
+    (52, '삼평동', 22),
+    (53, '세무1과', 22),
+    (54, '세무2과', 22),
+    (55, '녹지공원과', 22),
+    (56, '백현동', 22),
+    (57, '시민봉사과', 22),
+    (58, '가정복지과', 22),
+    (59, '사회복지과', 22),
+    (60, '정자동', 22),
+    (61, '환경자원과', 22),
+    (62, '건설과', 22),
+    (63, '구조물관리과', 22),
+    (64, '위생안전과', 22),
+    (65, '총무과', 22),
+    (66, '119구조대', 23),
+    (67, '서현119안전센터', 24),
+    (68, '판교119안전센터', 25),
+    (69, '수내119안전센터', 26),
+    (70, '야탑119안전센터', 27),
+    (71, '구미119안전센터', 28),
+    (72, '소방행정과', 23),
+    (73, '재난대응과', 23),
+    (74, '현장지휘단', 23),
+    (75, '서판교119안전센터', 23),
+    (76, '청문인권담당관', 23),
+    (77, '화재예방과', 23);
 
 
 -- 카테고리 대분류
-INSERT INTO report_categories (
-    id,
-    category_code,
-    category_name,
-    department_id,
-    parent_category_id
-)
+INSERT INTO report_categories (id, category_code, category_name, parent_category_id)
 VALUES
-    (1, 'TRAFFIC', '교통', 1, NULL),
-    (2, 'ENVIRONMENT', '환경', 4, NULL),
-    (3, 'FACILITY', '시설물', 6, NULL),
-    (4, 'LIFE_INCONVENIENCE', '생활불편', 6, NULL),
-    (5, 'PUBLIC_SAFETY', '치안', 7, NULL),
-    (6, 'WELFARE', '복지', 8, NULL),
-    (7, 'DISASTER_SAFETY', '재난안전', 9, NULL),
-    (8, 'ETC', '기타', 10, NULL);
+    (1, 'TRAFFIC', '교통', NULL),
+    (2, 'INFRASTRUCTURE_ROAD', '시설물', NULL),
+    (3, 'LIVING_INCONVENIENCE', '생활불편', NULL),
+    (4, 'LIFE_SAFETY', '생활안전', NULL),
+    (5, 'CONSTRUCTION_SITE', '공사장', NULL),
+    (6, 'PUBLIC_ORDER', '치안', NULL),
+    (7, 'PUBLIC_HEALTH_WELFARE', '보건복지', NULL),
+    (8, 'ETC', '기타', NULL);
 
 
 -- 카테고리 소분류
--- AI 반환 categoryCode
-INSERT INTO report_categories (
-    id,
-    category_code,
-    category_name,
-    department_id,
-    parent_category_id
-)
+INSERT INTO report_categories (id, category_code, category_name, parent_category_id)
 VALUES
-    (9,  'ILLEGAL_PARKING', '불법주정차', 1, 1),
-    (10, 'ROAD_DAMAGE', '도로 파손', 2, 1),
-
-    (11, 'TRASH_DUMPING', '쓰레기 무단투기', 3, 2),
-    (12, 'ANIMAL_CARCASS', '동물 사체', 3, 2),
-    (13, 'NOISE', '소음', 4, 2),
-
-    (14, 'STREETLIGHT', '가로등 고장', 5, 3),
-    (15, 'DANGEROUS_FACILITY', '위험 시설물', 6, 3),
-
-    (16, 'FALL_RISK', '낙상 위험', 6, 4),
-
-    (17, 'DRUNK_PERSON', '주취자', 7, 5),
-    (18, 'YOUTH_RISK', '청소년 위험', 7, 5),
-    (19, 'SUSPICIOUS', '수상한 상황', 7, 5),
-    (20, 'HOMELESS', '노숙', 8, 6),
-    (21, 'FIRE_EMERGENCY', '화재/응급', 9, 7),
-    (22, 'ETC_OTHER', '기타', 10, 8),
-    (23, 'INSUFFICIENT', '제보 불성립', 10, 8);
+    (9, 'ILLEGAL_PARKING', '불법주정차', 1),
+    (10, 'TRAFFIC_VIOLATION', '교통위반', 1),
+    (11, 'ABANDONED_VEHICLE', '방치차량', 1),
+    (12, 'PARKING_LOT_ISSUE', '주차장 불편', 1),
+    (13, 'PUBLIC_TRANSPORT_ISSUE', '대중교통 운행 불편', 1),
+    (14, 'ROAD_DAMAGE', '도로 파손', 2),
+    (15, 'ROAD_FACILITY_DAMAGE', '도로시설 파손', 2),
+    (16, 'SIDEWALK_DAMAGE', '보도블록 파손', 2),
+    (17, 'STREETLIGHT_FAILURE', '가로등 고장', 2),
+    (18, 'TRAFFIC_FACILITY_FAILURE', '교통시설물 고장', 2),
+    (19, 'MANHOLE_DRAIN_DAMAGE', '맨홀·배수구 파손', 2),
+    (20, 'PUBLIC_FACILITY_DAMAGE', '공공시설물 파손', 2),
+    (21, 'PUBLIC_USE_FACILITY_SAFETY', '다중이용시설 안전 문제', 2),
+    (22, 'OBSTRUCTION_ACCESS_BLOCKAGE', '장애물·통행 방해', 2),
+    (23, 'AGING_FACILITY_RISK', '노후 시설물 위험', 2),
+    (24, 'PARK_FACILITY_DAMAGE', '공원시설 파손', 2),
+    (25, 'WASTE_AND_DEBRIS', '쓰레기·폐기물', 3),
+    (26, 'ILLEGAL_ADVERTISEMENT', '불법광고물', 3),
+    (27, 'ODOR', '악취', 3),
+    (28, 'NOISE', '소음', 3),
+    (29, 'AIR_POLLUTION_DUST', '대기오염·비산먼지', 3),
+    (30, 'WATER_POLLUTION_WASTEWATER', '수질오염·오폐수', 3),
+    (31, 'ILLEGAL_BURNING', '불법소각', 3),
+    (32, 'LIGHT_POLLUTION', '빛공해', 3),
+    (33, 'PET_NUISANCE', '반려동물 불편', 3),
+    (34, 'FLOODING_RISK', '침수 위험', 4),
+    (35, 'SEWER_BACKFLOW', '하수도 역류', 4),
+    (36, 'RIVER_FACILITY_RISK', '하천 위험', 4),
+    (37, 'BEEHIVE_RISK', '벌집 위험', 4),
+    (38, 'STRAY_OR_DANGEROUS_ANIMAL', '유기동물·위험동물', 4),
+    (39, 'FIRE_RISK', '화재위험', 4),
+    (40, 'GAS_ELECTRIC_RISK', '가스·전기 위험', 4),
+    (41, 'CONSTRUCTION_SAFETY_VIOLATION', '공사장 안전조치 미흡', 5),
+    (42, 'CONSTRUCTION_NOISE', '공사장 소음', 5),
+    (43, 'CONSTRUCTION_CRACK_DAMAGE', '공사로 인한 균열', 5),
+    (44, 'CONSTRUCTION_ACCESS_BLOCKAGE', '공사장 통행 불편', 5),
+    (45, 'INTOXICATED_PERSON_CONCERN', '취객·주취자 불안', 6),
+    (46, 'DISORDERLY_CONDUCT_DISPUTE', '행패소란·시비', 6),
+    (47, 'SUSPICIOUS_ACTIVITY', '범죄의심·방범불안', 6),
+    (48, 'ILLEGAL_FILMING_SUSPICION', '불법촬영 의심', 6),
+    (49, 'YOUTH_DELINQUENCY_DISTURBANCE', '청소년 비행·집단소란', 6),
+    (50, 'ACCESSIBILITY_FACILITY_ISSUE', '장애인 편의시설 불편', 7),
+    (51, 'PUBLIC_HYGIENE_ISSUE', '공중위생 불량', 7),
+    (52, 'FOOD_HYGIENE_REPORT', '식품위생 신고', 7),
+    (53, 'PEST_CONTROL_ISSUE', '해충 문제', 7),
+    (54, 'VULNERABLE_PERSON_RISK', '노약자 위험 상황', 7),
+    (55, 'YOUTH_RISK_ENVIRONMENT', '청소년 위험 환경', 7),
+    (56, 'ETC_OTHER', '기타', 8),
+    (57, 'INSUFFICIENT', '제보 불성립', 8);
 
 
 -- 카테고리별 중복 병합 기준
@@ -83,19 +192,68 @@ SELECT category.id, rule.link_radius_meters, rule.max_group_diameter_meters,
        rule.min_embedding_similarity, rule.auto_merge_threshold
 FROM (
     VALUES
+        -- 교통
         ('ILLEGAL_PARKING', 30, 100, 0.80, 80),
+        ('TRAFFIC_VIOLATION', 50, 150, 0.80, 82),
+        ('ABANDONED_VEHICLE', 50, 150, 0.78, 80),
+        ('PARKING_LOT_ISSUE', 80, 200, 0.76, 82),
+        ('PUBLIC_TRANSPORT_ISSUE', 150, 500, 0.74, 85),
+
+        -- 시설물·도로
         ('ROAD_DAMAGE', 50, 120, 0.78, 80),
-        ('TRASH_DUMPING', 50, 120, 0.78, 80),
-        ('ANIMAL_CARCASS', 30, 80, 0.80, 80),
+        ('ROAD_FACILITY_DAMAGE', 50, 150, 0.78, 80),
+        ('SIDEWALK_DAMAGE', 40, 100, 0.80, 80),
+        ('STREETLIGHT_FAILURE', 20, 50, 0.82, 80),
+        ('TRAFFIC_FACILITY_FAILURE', 30, 80, 0.80, 80),
+        ('MANHOLE_DRAIN_DAMAGE', 30, 80, 0.80, 80),
+        ('PUBLIC_FACILITY_DAMAGE', 50, 150, 0.78, 80),
+        ('PUBLIC_USE_FACILITY_SAFETY', 60, 200, 0.77, 82),
+        ('OBSTRUCTION_ACCESS_BLOCKAGE', 50, 120, 0.78, 80),
+        ('AGING_FACILITY_RISK', 80, 250, 0.76, 82),
+        ('PARK_FACILITY_DAMAGE', 60, 180, 0.78, 80),
+
+        -- 생활불편
+        ('WASTE_AND_DEBRIS', 50, 120, 0.78, 80),
+        ('ILLEGAL_ADVERTISEMENT', 30, 100, 0.80, 80),
+        ('ODOR', 150, 400, 0.75, 82),
         ('NOISE', 150, 400, 0.75, 82),
-        ('STREETLIGHT', 20, 50, 0.82, 80),
-        ('DANGEROUS_FACILITY', 50, 150, 0.78, 80),
-        ('FALL_RISK', 50, 120, 0.78, 80),
-        ('DRUNK_PERSON', 80, 200, 0.78, 82),
-        ('YOUTH_RISK', 100, 250, 0.76, 82),
-        ('SUSPICIOUS', 100, 250, 0.76, 82),
-        ('HOMELESS', 100, 300, 0.75, 82),
-        ('FIRE_EMERGENCY', 150, 500, 0.70, 85),
+        ('AIR_POLLUTION_DUST', 200, 600, 0.73, 84),
+        ('WATER_POLLUTION_WASTEWATER', 150, 500, 0.74, 84),
+        ('ILLEGAL_BURNING', 100, 300, 0.76, 84),
+        ('LIGHT_POLLUTION', 150, 400, 0.75, 82),
+        ('PET_NUISANCE', 100, 250, 0.76, 82),
+
+        -- 생활안전
+        ('FLOODING_RISK', 150, 500, 0.72, 84),
+        ('SEWER_BACKFLOW', 50, 150, 0.78, 82),
+        ('RIVER_FACILITY_RISK', 150, 500, 0.74, 84),
+        ('BEEHIVE_RISK', 30, 80, 0.82, 80),
+        ('STRAY_OR_DANGEROUS_ANIMAL', 30, 80, 0.80, 80),
+        ('FIRE_RISK', 150, 500, 0.70, 85),
+        ('GAS_ELECTRIC_RISK', 80, 250, 0.76, 85),
+
+        -- 공사장
+        ('CONSTRUCTION_SAFETY_VIOLATION', 80, 250, 0.76, 82),
+        ('CONSTRUCTION_NOISE', 150, 400, 0.75, 82),
+        ('CONSTRUCTION_CRACK_DAMAGE', 80, 250, 0.77, 82),
+        ('CONSTRUCTION_ACCESS_BLOCKAGE', 50, 150, 0.78, 80),
+
+        -- 치안
+        ('INTOXICATED_PERSON_CONCERN', 80, 200, 0.78, 82),
+        ('DISORDERLY_CONDUCT_DISPUTE', 80, 200, 0.78, 82),
+        ('SUSPICIOUS_ACTIVITY', 100, 250, 0.76, 82),
+        ('ILLEGAL_FILMING_SUSPICION', 50, 150, 0.82, 88),
+        ('YOUTH_DELINQUENCY_DISTURBANCE', 100, 250, 0.76, 82),
+
+        -- 보건·복지
+        ('ACCESSIBILITY_FACILITY_ISSUE', 50, 150, 0.78, 82),
+        ('PUBLIC_HYGIENE_ISSUE', 80, 250, 0.76, 82),
+        ('FOOD_HYGIENE_REPORT', 30, 100, 0.80, 85),
+        ('PEST_CONTROL_ISSUE', 80, 250, 0.76, 82),
+        ('VULNERABLE_PERSON_RISK', 100, 300, 0.75, 82),
+        ('YOUTH_RISK_ENVIRONMENT', 100, 250, 0.76, 82),
+
+        -- 기타
         ('ETC_OTHER', 30, 80, 0.85, 90)
 ) AS rule(category_code, link_radius_meters, max_group_diameter_meters, min_embedding_similarity, auto_merge_threshold)
 JOIN report_categories category

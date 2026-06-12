@@ -206,6 +206,8 @@ public class ChatbotService {
         String botAnswer) {
         ChatbotSession session = getOwnedSession(userId, sessionId);
         LocalDateTime now = LocalDateTime.now();
+        boolean shouldUpdateTitle = NEW_CHAT_TITLE.equals(session.getTitle())
+            && chatbotMessageRepository.countBySession_Id(sessionId) == 0;
         ChatbotMessage userMessage = chatbotMessageRepository.save(ChatbotMessage.create(
             session,
             ChatbotSenderType.USER,
@@ -219,7 +221,7 @@ public class ChatbotService {
             LocalDateTime.now()
         ));
 
-        if (NEW_CHAT_TITLE.equals(session.getTitle())) {
+        if (shouldUpdateTitle) {
             updateChatTitle(sessionId, session, request.message(), botAnswer);
         }
 
@@ -316,6 +318,7 @@ public class ChatbotService {
         ChatbotTitleSource titleSource = createTitleSource(sessionId, currentQuestion, currentAnswer);
         chatbotAiClient.requestTitle(new ChatbotTitleRequest(titleSource.question(), titleSource.answer()))
             .map(ChatbotTitleResponse::title)
+            .map(String::strip)
             .filter(title -> !title.isBlank())
             .ifPresent(session::updateTitle);
     }
