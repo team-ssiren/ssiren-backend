@@ -320,39 +320,63 @@ public class DataInitializer implements ApplicationRunner {
 
         saveUserChildren(users, operators, template.departments());
 
-        List<IssueGroup> issueGroups = issueGroupRepository.saveAll(List.of(
-                issueGroup("수지구 보도블록 파손 구간", "출근 시간대 보행자가 반복적으로 불편을 겪는 구간입니다.", "ROAD_DAMAGE"),
-                issueGroup("수지구 골목 쓰레기 무단투기", "상가 뒤편에 생활 폐기물과 음식물 쓰레기가 반복 적치됩니다.", "WASTE_AND_DEBRIS"),
-                issueGroup("수지구 어린이보호구역 불법주정차", "등교 시간대 횡단보도 시야가 가려지는 상황입니다.", "ILLEGAL_PARKING")));
+//        List<IssueGroup> issueGroups = issueGroupRepository.saveAll(List.of(
+//                issueGroup("수지구 보도블록 파손 구간", "출근 시간대 보행자가 반복적으로 불편을 겪는 구간입니다.", "ROAD_DAMAGE"),
+//                issueGroup("수지구 골목 쓰레기 무단투기", "상가 뒤편에 생활 폐기물과 음식물 쓰레기가 반복 적치됩니다.", "WASTE_AND_DEBRIS"),
+//                issueGroup("수지구 어린이보호구역 불법주정차", "등교 시간대 횡단보도 시야가 가려지는 상황입니다.", "ILLEGAL_PARKING")));
+//        List<FixedIssueGroupSeed> fixedIssueGroupSeeds = fixedIssueGroupSeeds();
+//        List<FixedReportSeed> fixedReportSeeds = fixedReportSeeds();
+//        fixedIssueGroupSeeds = new ArrayList<>(issueGroups);
+//        issueGroups.addAll(issueGroupRepository.saveAll(
+//                fixedIssueGroupSeeds.stream()
+//                        .map(seed -> issueGroup(seed.title(), seed.content(), seed.latitude(), seed.longitude(), seed.riskScore(), seed.reportCount()))
+//                        .toList()));
+//
+//        List<Report> reports = reportRepository.saveAll(createReports(citizens, issueGroups, template));
+//        List<Report> reports = new ArrayList<>();
+//        reports.addAll(reportRepository.saveAll(createFixedReports(citizens, issueGroups, template, fixedReportSeeds, 3)));
+//
+//        saveReportChildren(reports, users, operators.get(0));
+//        saveChatbotData(users);
+//        saveNotifications(users, reports);
+
         List<FixedIssueGroupSeed> fixedIssueGroupSeeds = fixedIssueGroupSeeds();
         List<FixedReportSeed> fixedReportSeeds = fixedReportSeeds();
-        issueGroups = new ArrayList<>(issueGroups);
-        issueGroups.addAll(issueGroupRepository.saveAll(
-                fixedIssueGroupSeeds.stream()
-                        .map(seed -> issueGroup(seed.title(), seed.content(), seed.latitude(), seed.longitude(), seed.riskScore(), seed.reportCount()))
-                        .toList()));
 
-        List<Report> reports = reportRepository.saveAll(createReports(citizens, issueGroups, template));
-        reports = new ArrayList<>(reports);
-        reports.addAll(reportRepository.saveAll(createFixedReports(citizens, issueGroups, template, fixedReportSeeds, 3)));
+        List<IssueGroup> issueGroups = issueGroupRepository.saveAll(
+                fixedIssueGroupSeeds.stream()
+                        .map(seed -> issueGroup(
+                                seed.title(),
+                                seed.content(),
+                                seed.latitude(),
+                                seed.longitude(),
+                                seed.riskScore(),
+                                seed.reportCount()
+                        ))
+                        .toList()
+        );
+
+        List<Report> reports = reportRepository.saveAll(
+                createFixedReports(citizens, issueGroups, template, fixedReportSeeds, 0)
+        );
 
         saveReportChildren(reports, users, operators.get(0));
         saveChatbotData(users);
         saveNotifications(users, reports);
     }
 
-    private List<Report> createReports(List<User> citizens, List<IssueGroup> issueGroups, SeedTemplate template) {
-        return List.of(
-                report("보도블록이 내려앉아 발목을 접질릴 뻔했습니다.", "보도블록 파손", "경기도 용인시 수지구 풍덕천로 152", "경기도 용인시 수지구 풍덕천동 737", citizens.get(0), template.categoryByCode("ROAD_DAMAGE"), template.departmentByName("수지구청", "건설도로과"), issueGroups.get(0), ReportStatus.SUBMITTED, true),
-                report("비 오는 날마다 같은 보도블록 구간에 물이 고입니다.", "침하된 보도블록", "경기도 용인시 수지구 풍덕천로 156", "경기도 용인시 수지구 풍덕천동 738", citizens.get(1), template.categoryByCode("ROAD_DAMAGE"), template.departmentByName("수지구청", "건설도로과"), issueGroups.get(0), ReportStatus.CHECKING, false),
-                report("파손 구간 옆 안내 표시가 없어 야간에 위험합니다.", "보행 안전 표시 필요", "경기도 용인시 수지구 풍덕천로 150", "경기도 용인시 수지구 풍덕천동 736", citizens.get(2), template.categoryByCode("ROAD_DAMAGE"), template.departmentByName("수지구청", "건설도로과"), issueGroups.get(0), ReportStatus.IN_PROGRESS, false),
-                report("퇴근길마다 같은 위치에 생활 쓰레기가 쌓입니다.", "쓰레기 무단투기", "경기도 용인시 수지구 죽전로 513", "경기도 용인시 수지구 죽전동 159", citizens.get(0), template.categoryByCode("WASTE_AND_DEBRIS"), template.departmentByName("수지구청", "산업환경과"), issueGroups.get(1), ReportStatus.RECEIVED, true),
-                report("상가 뒤편에 종량제 봉투가 아닌 폐기물이 방치되어 있습니다.", "폐기물 방치", "경기도 용인시 수지구 죽전로 517", "경기도 용인시 수지구 죽전동 160", citizens.get(1), template.categoryByCode("WASTE_AND_DEBRIS"), template.departmentByName("수지구청", "산업환경과"), issueGroups.get(1), ReportStatus.SUBMITTED, false),
-                report("음식물 쓰레기 냄새가 골목 전체로 퍼지고 있습니다.", "음식물 쓰레기 적치", "경기도 용인시 수지구 죽전로 519", "경기도 용인시 수지구 죽전동 161", citizens.get(2), template.categoryByCode("WASTE_AND_DEBRIS"), template.departmentByName("수지구청", "산업환경과"), issueGroups.get(1), ReportStatus.IN_PROGRESS, false),
-                report("어린이보호구역 횡단보도 앞 불법주정차입니다.", "불법주정차", "경기도 용인시 수지구 상현로 120", "경기도 용인시 수지구 상현동 142", citizens.get(0), template.categoryByCode("ILLEGAL_PARKING"), template.departmentByName("수지구청", "교통과"), issueGroups.get(2), ReportStatus.CHECKING, true),
-                report("등교 시간에 횡단보도 모퉁이를 차량이 막고 있습니다.", "보호구역 시야 방해", "경기도 용인시 수지구 상현로 124", "경기도 용인시 수지구 상현동 143", citizens.get(1), template.categoryByCode("ILLEGAL_PARKING"), template.departmentByName("수지구청", "교통과"), issueGroups.get(2), ReportStatus.RECEIVED, false),
-                report("어린이집 앞 정차 차량으로 보행 동선이 막힙니다.", "어린이집 앞 정차", "경기도 용인시 수지구 상현로 118", "경기도 용인시 수지구 상현동 141", citizens.get(2), template.categoryByCode("ILLEGAL_PARKING"), template.departmentByName("수지구청", "교통과"), issueGroups.get(2), ReportStatus.SUBMITTED, false));
-    }
+//    private List<Report> createReports(List<User> citizens, List<IssueGroup> issueGroups, SeedTemplate template) {
+//        return List.of(
+//                report("보도블록이 내려앉아 발목을 접질릴 뻔했습니다.", "보도블록 파손", "경기도 용인시 수지구 풍덕천로 152", "경기도 용인시 수지구 풍덕천동 737", citizens.get(0), template.categoryByCode("ROAD_DAMAGE"), template.departmentByName("수지구청", "건설도로과"), issueGroups.get(0), ReportStatus.SUBMITTED, true),
+//                report("비 오는 날마다 같은 보도블록 구간에 물이 고입니다.", "침하된 보도블록", "경기도 용인시 수지구 풍덕천로 156", "경기도 용인시 수지구 풍덕천동 738", citizens.get(1), template.categoryByCode("ROAD_DAMAGE"), template.departmentByName("수지구청", "건설도로과"), issueGroups.get(0), ReportStatus.CHECKING, false),
+//                report("파손 구간 옆 안내 표시가 없어 야간에 위험합니다.", "보행 안전 표시 필요", "경기도 용인시 수지구 풍덕천로 150", "경기도 용인시 수지구 풍덕천동 736", citizens.get(2), template.categoryByCode("ROAD_DAMAGE"), template.departmentByName("수지구청", "건설도로과"), issueGroups.get(0), ReportStatus.IN_PROGRESS, false),
+//                report("퇴근길마다 같은 위치에 생활 쓰레기가 쌓입니다.", "쓰레기 무단투기", "경기도 용인시 수지구 죽전로 513", "경기도 용인시 수지구 죽전동 159", citizens.get(0), template.categoryByCode("WASTE_AND_DEBRIS"), template.departmentByName("수지구청", "산업환경과"), issueGroups.get(1), ReportStatus.RECEIVED, true),
+//                report("상가 뒤편에 종량제 봉투가 아닌 폐기물이 방치되어 있습니다.", "폐기물 방치", "경기도 용인시 수지구 죽전로 517", "경기도 용인시 수지구 죽전동 160", citizens.get(1), template.categoryByCode("WASTE_AND_DEBRIS"), template.departmentByName("수지구청", "산업환경과"), issueGroups.get(1), ReportStatus.SUBMITTED, false),
+//                report("음식물 쓰레기 냄새가 골목 전체로 퍼지고 있습니다.", "음식물 쓰레기 적치", "경기도 용인시 수지구 죽전로 519", "경기도 용인시 수지구 죽전동 161", citizens.get(2), template.categoryByCode("WASTE_AND_DEBRIS"), template.departmentByName("수지구청", "산업환경과"), issueGroups.get(1), ReportStatus.IN_PROGRESS, false),
+//                report("어린이보호구역 횡단보도 앞 불법주정차입니다.", "불법주정차", "경기도 용인시 수지구 상현로 120", "경기도 용인시 수지구 상현동 142", citizens.get(0), template.categoryByCode("ILLEGAL_PARKING"), template.departmentByName("수지구청", "교통과"), issueGroups.get(2), ReportStatus.CHECKING, true),
+//                report("등교 시간에 횡단보도 모퉁이를 차량이 막고 있습니다.", "보호구역 시야 방해", "경기도 용인시 수지구 상현로 124", "경기도 용인시 수지구 상현동 143", citizens.get(1), template.categoryByCode("ILLEGAL_PARKING"), template.departmentByName("수지구청", "교통과"), issueGroups.get(2), ReportStatus.RECEIVED, false),
+//                report("어린이집 앞 정차 차량으로 보행 동선이 막힙니다.", "어린이집 앞 정차", "경기도 용인시 수지구 상현로 118", "경기도 용인시 수지구 상현동 141", citizens.get(2), template.categoryByCode("ILLEGAL_PARKING"), template.departmentByName("수지구청", "교통과"), issueGroups.get(2), ReportStatus.SUBMITTED, false));
+//    }
 
     private List<Report> createFixedReports(
             List<User> citizens,
@@ -376,7 +400,7 @@ public class DataInitializer implements ApplicationRunner {
                     template.departmentByName(seed.agencyName(), seed.departmentName()),
                     issueGroups.get(issueGroupStartIndex + seed.issueGroupIndex()),
                     seed.status(),
-                    true));
+                    seed.isRepresentative()));
         }
         return reports;
     }
@@ -401,31 +425,31 @@ public class DataInitializer implements ApplicationRunner {
     }
     private List<FixedReportSeed> fixedReportSeeds() {
         return List.of(
-                fixedReportSeed(0, "골목 입구에 세워진 차량 때문에 차가 한 대씩만 지나갑니다.", "골목 입구 불법주정차", "37.3532878", "127.0703683", "30.00", "ILLEGAL_PARKING", "수지구청", "교통과", ReportStatus.SUBMITTED),
-                fixedReportSeed(0, "상가 모퉁이에 장시간 정차한 차량 때문에 우회전 차량 시야가 가립니다.", "모퉁이 장시간 정차", "37.3534078", "127.0704583", "30.00", "ILLEGAL_PARKING", "수지구청", "교통과", ReportStatus.RECEIVED),
-                fixedReportSeed(0, "보행로 가장자리까지 차량이 올라와 유모차가 차도로 돌아가고 있습니다.", "보행로 침범 주차", "37.3531878", "127.0705083", "30.00", "ILLEGAL_PARKING", "수지구청", "교통과", ReportStatus.SUBMITTED),
-                fixedReportSeed(0, "건물 출입구 앞 정차 차량 때문에 사람과 배달 오토바이가 뒤섞입니다.", "출입구 앞 정차", "37.3534478", "127.0702483", "30.00", "ILLEGAL_PARKING", "수지구청", "교통과", ReportStatus.CHECKING),
-                fixedReportSeed(0, "소방 통로 표시선 안쪽에 차량이 계속 세워져 있습니다.", "소방 통로 주차", "37.3531478", "127.0702883", "30.00", "ILLEGAL_PARKING", "수지구청", "교통과", ReportStatus.SUBMITTED),
-                fixedReportSeed(1, "편의점 앞 벤치에서 술에 취한 사람이 계속 소리를 지르고 있습니다.", "편의점 앞 주취자 고성", "37.3535078", "127.0703883", "60.00", "INTOXICATED_PERSON_CONCERN", "용인서부경찰서", "범죄예방대응과", ReportStatus.RECEIVED),
-                fixedReportSeed(1, "주취자가 지나가는 사람에게 말을 걸며 따라붙어 불안합니다.", "보행자 접촉 시도", "37.3530878", "127.0705683", "60.00", "INTOXICATED_PERSON_CONCERN", "용인서부경찰서", "범죄예방대응과", ReportStatus.CHECKING),
-                fixedReportSeed(1, "출입문 근처에 취객이 앉아 있어 손님들이 들어가기를 꺼립니다.", "출입 방해 주취자", "37.3533378", "127.0701283", "60.00", "INTOXICATED_PERSON_CONCERN", "용인서부경찰서", "범죄예방대응과", ReportStatus.SUBMITTED),
-                fixedReportSeed(2, "상가 앞에서 두 사람이 큰 소리로 다투고 있어 보행자가 피하고 있습니다.", "상가 앞 고성 시비", "37.3533676", "127.0725919", "80.00", "DISORDERLY_CONDUCT_DISPUTE", "용인서부경찰서", "범죄예방대응과", ReportStatus.RECEIVED),
-                fixedReportSeed(2, "몸싸움으로 번질 것처럼 서로 밀치고 있어 현장 확인이 필요합니다.", "몸싸움 우려 시비", "37.3535076", "127.0725019", "80.00", "DISORDERLY_CONDUCT_DISPUTE", "용인서부경찰서", "범죄예방대응과", ReportStatus.CHECKING),
-                fixedReportSeed(2, "인도 한가운데에서 고성이 오가며 사람들이 차도로 돌아가고 있습니다.", "인도 위 고성 다툼", "37.3532476", "127.0727219", "80.00", "DISORDERLY_CONDUCT_DISPUTE", "용인서부경찰서", "범죄예방대응과", ReportStatus.SUBMITTED),
-                fixedReportSeed(3, "골목 입구에 종량제 봉투가 아닌 생활폐기물이 쌓여 있습니다.", "생활폐기물 무단 적치", "37.3514273", "127.0702762", "30.00", "WASTE_AND_DEBRIS", "수지구청", "산업환경과", ReportStatus.SUBMITTED),
-                fixedReportSeed(3, "상가 뒤편에 박스와 비닐류가 며칠째 치워지지 않고 있습니다.", "상가 뒤편 폐기물", "37.3515573", "127.0704162", "30.00", "WASTE_AND_DEBRIS", "수지구청", "산업환경과", ReportStatus.RECEIVED),
-                fixedReportSeed(3, "음식물 쓰레기 봉투가 터져 냄새가 골목까지 퍼집니다.", "음식물 쓰레기 방치", "37.3512873", "127.0703962", "30.00", "WASTE_AND_DEBRIS", "수지구청", "산업환경과", ReportStatus.SUBMITTED),
-                fixedReportSeed(3, "분리수거장 밖에 폐기물이 계속 놓여 통행 공간이 줄었습니다.", "분리수거장 밖 적치", "37.3515073", "127.0700862", "30.00", "WASTE_AND_DEBRIS", "수지구청", "산업환경과", ReportStatus.CHECKING),
-                fixedReportSeed(4, "이면도로 한쪽을 차량이 막아 마주 오는 차가 후진해야 합니다.", "이면도로 통행 방해", "37.3514273", "127.0702762", "30.00", "ILLEGAL_PARKING", "수지구청", "교통과", ReportStatus.SUBMITTED),
-                fixedReportSeed(4, "횡단 지점 가까이에 정차한 차량 때문에 보행자 확인이 어렵습니다.", "횡단 지점 정차", "37.3516073", "127.0702762", "30.00", "ILLEGAL_PARKING", "수지구청", "교통과", ReportStatus.RECEIVED),
-                fixedReportSeed(4, "주차장 출입로 앞에 차량이 서 있어 진입 차량이 대기합니다.", "주차장 출입로 막힘", "37.3512473", "127.0702762", "30.00", "ILLEGAL_PARKING", "수지구청", "교통과", ReportStatus.SUBMITTED),
-                fixedReportSeed(4, "보도 가장자리에 걸쳐 세운 차량 때문에 보행자가 차도로 내려갑니다.", "보도 걸침 주차", "37.3514273", "127.0704862", "30.00", "ILLEGAL_PARKING", "수지구청", "교통과", ReportStatus.CHECKING),
-                fixedReportSeed(4, "교차로 모퉁이에 세워진 차량 때문에 회전 차량이 크게 돌아갑니다.", "교차로 모퉁이 주차", "37.3514273", "127.0700662", "30.00", "ILLEGAL_PARKING", "수지구청", "교통과", ReportStatus.SUBMITTED),
-                fixedReportSeed(4, "차량 두 대가 연속으로 정차해 차로 폭이 거의 남지 않았습니다.", "연속 정차 차량", "37.3515573", "127.0701262", "30.00", "ILLEGAL_PARKING", "수지구청", "교통과", ReportStatus.RECEIVED),
-                fixedReportSeed(4, "배송 차량이 장시간 정차해 뒤 차량들이 중앙선을 넘어갑니다.", "배송 차량 장시간 정차", "37.3512973", "127.0704262", "30.00", "ILLEGAL_PARKING", "수지구청", "교통과", ReportStatus.SUBMITTED),
-                fixedReportSeed(4, "소화전 주변에 차량이 세워져 긴급 상황이 걱정됩니다.", "소화전 주변 주차", "37.3516273", "127.0704862", "30.00", "ILLEGAL_PARKING", "수지구청", "교통과", ReportStatus.CHECKING),
-                fixedReportSeed(4, "골목 입구 정차 차량 때문에 택배차가 들어오지 못하고 있습니다.", "골목 입구 정차", "37.3512173", "127.0700562", "30.00", "ILLEGAL_PARKING", "수지구청", "교통과", ReportStatus.RECEIVED),
-                fixedReportSeed(4, "주정차 금지 표지 아래 같은 차량이 반복적으로 서 있습니다.", "금지구역 반복 주차", "37.3516773", "127.0702462", "30.00", "ILLEGAL_PARKING", "수지구청", "교통과", ReportStatus.SUBMITTED));
+                fixedReportSeed(0, "골목 입구에 세워진 차량 때문에 차가 한 대씩만 지나갑니다.", "골목 입구 불법주정차", "37.3532878", "127.0703683", "30.00", "ILLEGAL_PARKING", "수지구청", "교통과", ReportStatus.SUBMITTED, true),
+                fixedReportSeed(0, "상가 모퉁이에 장시간 정차한 차량 때문에 우회전 차량 시야가 가립니다.", "모퉁이 장시간 정차", "37.3534078", "127.0704583", "30.00", "ILLEGAL_PARKING", "수지구청", "교통과", ReportStatus.SUBMITTED, false),
+                fixedReportSeed(0, "보행로 가장자리까지 차량이 올라와 유모차가 차도로 돌아가고 있습니다.", "보행로 침범 주차", "37.3531878", "127.0705083", "30.00", "ILLEGAL_PARKING", "수지구청", "교통과", ReportStatus.SUBMITTED, false),
+                fixedReportSeed(0, "건물 출입구 앞 정차 차량 때문에 사람과 배달 오토바이가 뒤섞입니다.", "출입구 앞 정차", "37.3534478", "127.0702483", "30.00", "ILLEGAL_PARKING", "수지구청", "교통과", ReportStatus.SUBMITTED, false),
+                fixedReportSeed(0, "소방 통로 표시선 안쪽에 차량이 계속 세워져 있습니다.", "소방 통로 주차", "37.3531478", "127.0702883", "30.00", "ILLEGAL_PARKING", "수지구청", "교통과", ReportStatus.SUBMITTED, false),
+                fixedReportSeed(1, "편의점 앞 벤치에서 술에 취한 사람이 계속 소리를 지르고 있습니다.", "편의점 앞 주취자 고성", "37.3535078", "127.0703883", "60.00", "INTOXICATED_PERSON_CONCERN", "용인서부경찰서", "범죄예방대응과", ReportStatus.SUBMITTED, true),
+                fixedReportSeed(1, "주취자가 지나가는 사람에게 말을 걸며 따라붙어 불안합니다.", "보행자 접촉 시도", "37.3530878", "127.0705683", "60.00", "INTOXICATED_PERSON_CONCERN", "용인서부경찰서", "범죄예방대응과", ReportStatus.SUBMITTED, false),
+                fixedReportSeed(1, "출입문 근처에 취객이 앉아 있어 손님들이 들어가기를 꺼립니다.", "출입 방해 주취자", "37.3533378", "127.0701283", "60.00", "INTOXICATED_PERSON_CONCERN", "용인서부경찰서", "범죄예방대응과", ReportStatus.SUBMITTED, false),
+                fixedReportSeed(2, "상가 앞에서 두 사람이 큰 소리로 다투고 있어 보행자가 피하고 있습니다.", "상가 앞 고성 시비", "37.3533676", "127.0725919", "80.00", "DISORDERLY_CONDUCT_DISPUTE", "용인서부경찰서", "범죄예방대응과", ReportStatus.SUBMITTED, true),
+                fixedReportSeed(2, "몸싸움으로 번질 것처럼 서로 밀치고 있어 현장 확인이 필요합니다.", "몸싸움 우려 시비", "37.3535076", "127.0725019", "80.00", "DISORDERLY_CONDUCT_DISPUTE", "용인서부경찰서", "범죄예방대응과", ReportStatus.SUBMITTED, false),
+                fixedReportSeed(2, "인도 한가운데에서 고성이 오가며 사람들이 차도로 돌아가고 있습니다.", "인도 위 고성 다툼", "37.3532476", "127.0727219", "80.00", "DISORDERLY_CONDUCT_DISPUTE", "용인서부경찰서", "범죄예방대응과", ReportStatus.SUBMITTED, false),
+                fixedReportSeed(3, "골목 입구에 종량제 봉투가 아닌 생활폐기물이 쌓여 있습니다.", "생활폐기물 무단 적치", "37.3514273", "127.0702762", "30.00", "WASTE_AND_DEBRIS", "수지구청", "산업환경과", ReportStatus.SUBMITTED, true),
+                fixedReportSeed(3, "상가 뒤편에 박스와 비닐류가 며칠째 치워지지 않고 있습니다.", "상가 뒤편 폐기물", "37.3515573", "127.0704162", "30.00", "WASTE_AND_DEBRIS", "수지구청", "산업환경과", ReportStatus.SUBMITTED, false),
+                fixedReportSeed(3, "음식물 쓰레기 봉투가 터져 냄새가 골목까지 퍼집니다.", "음식물 쓰레기 방치", "37.3512873", "127.0703962", "30.00", "WASTE_AND_DEBRIS", "수지구청", "산업환경과", ReportStatus.SUBMITTED, false),
+                fixedReportSeed(3, "분리수거장 밖에 폐기물이 계속 놓여 통행 공간이 줄었습니다.", "분리수거장 밖 적치", "37.3515073", "127.0700862", "30.00", "WASTE_AND_DEBRIS", "수지구청", "산업환경과", ReportStatus.SUBMITTED, false),
+                fixedReportSeed(4, "이면도로 한쪽을 차량이 막아 마주 오는 차가 후진해야 합니다.", "이면도로 통행 방해", "37.3514273", "127.0702762", "30.00", "ILLEGAL_PARKING", "수지구청", "교통과", ReportStatus.SUBMITTED, true),
+                fixedReportSeed(4, "횡단 지점 가까이에 정차한 차량 때문에 보행자 확인이 어렵습니다.", "횡단 지점 정차", "37.3516073", "127.0702762", "30.00", "ILLEGAL_PARKING", "수지구청", "교통과", ReportStatus.SUBMITTED, false),
+                fixedReportSeed(4, "주차장 출입로 앞에 차량이 서 있어 진입 차량이 대기합니다.", "주차장 출입로 막힘", "37.3512473", "127.0702762", "30.00", "ILLEGAL_PARKING", "수지구청", "교통과", ReportStatus.SUBMITTED, false),
+                fixedReportSeed(4, "보도 가장자리에 걸쳐 세운 차량 때문에 보행자가 차도로 내려갑니다.", "보도 걸침 주차", "37.3514273", "127.0704862", "30.00", "ILLEGAL_PARKING", "수지구청", "교통과", ReportStatus.SUBMITTED, false),
+                fixedReportSeed(4, "교차로 모퉁이에 세워진 차량 때문에 회전 차량이 크게 돌아갑니다.", "교차로 모퉁이 주차", "37.3514273", "127.0700662", "30.00", "ILLEGAL_PARKING", "수지구청", "교통과", ReportStatus.SUBMITTED, false),
+                fixedReportSeed(4, "차량 두 대가 연속으로 정차해 차로 폭이 거의 남지 않았습니다.", "연속 정차 차량", "37.3515573", "127.0701262", "30.00", "ILLEGAL_PARKING", "수지구청", "교통과", ReportStatus.SUBMITTED, false),
+                fixedReportSeed(4, "배송 차량이 장시간 정차해 뒤 차량들이 중앙선을 넘어갑니다.", "배송 차량 장시간 정차", "37.3512973", "127.0704262", "30.00", "ILLEGAL_PARKING", "수지구청", "교통과", ReportStatus.SUBMITTED, false),
+                fixedReportSeed(4, "소화전 주변에 차량이 세워져 긴급 상황이 걱정됩니다.", "소화전 주변 주차", "37.3516273", "127.0704862", "30.00", "ILLEGAL_PARKING", "수지구청", "교통과", ReportStatus.SUBMITTED, false),
+                fixedReportSeed(4, "골목 입구 정차 차량 때문에 택배차가 들어오지 못하고 있습니다.", "골목 입구 정차", "37.3512173", "127.0700562", "30.00", "ILLEGAL_PARKING", "수지구청", "교통과", ReportStatus.SUBMITTED, false),
+                fixedReportSeed(4, "주정차 금지 표지 아래 같은 차량이 반복적으로 서 있습니다.", "금지구역 반복 주차", "37.3516773", "127.0702462", "30.00", "ILLEGAL_PARKING", "수지구청", "교통과", ReportStatus.SUBMITTED, false));
     }
 
     private FixedReportSeed fixedReportSeed(
@@ -438,7 +462,8 @@ public class DataInitializer implements ApplicationRunner {
             String categoryCode,
             String agencyName,
             String departmentName,
-            ReportStatus status) {
+            ReportStatus status,
+            Boolean isRepresentative) {
         return new FixedReportSeed(
                 issueGroupIndex,
                 title,
@@ -451,7 +476,8 @@ public class DataInitializer implements ApplicationRunner {
                 categoryCode,
                 agencyName,
                 departmentName,
-                status);
+                status,
+                isRepresentative);
     }
 
     private void saveUserChildren(List<User> users, List<User> operators, List<Department> departments) {
@@ -879,7 +905,8 @@ public class DataInitializer implements ApplicationRunner {
             String categoryCode,
             String agencyName,
             String departmentName,
-            ReportStatus status) {
+            ReportStatus status,
+            Boolean isRepresentative) {
     }
 
     private record SeedTemplate(List<Department> departments, List<ReportCategory> reportCategories) {
