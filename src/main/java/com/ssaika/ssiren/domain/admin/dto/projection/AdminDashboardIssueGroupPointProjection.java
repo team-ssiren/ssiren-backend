@@ -9,4 +9,6 @@ public interface AdminDashboardIssueGroupPointProjection {
     BigDecimal getGroupLatitude();
 
     BigDecimal getGroupLongitude();
+
+    Long getReportCount();
 }
