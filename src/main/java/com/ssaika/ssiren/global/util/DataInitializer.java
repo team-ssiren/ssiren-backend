@@ -36,6 +36,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Random;
 
 @Component
 @RequiredArgsConstructor
@@ -57,6 +58,9 @@ public class DataInitializer implements ApplicationRunner {
     private final ChatbotSessionRepository chatbotSessionRepository;
     private final ChatbotMessageRepository chatbotMessageRepository;
     private final NotificationRepository notificationRepository;
+
+    // 더미 좌표/위험도 랜덤 배치용 (수지구 범위)
+    private final Random random = new Random();
 
     @Override
     @Transactional
@@ -81,115 +85,70 @@ public class DataInitializer implements ApplicationRunner {
     private SeedTemplate saveTemplateDataIfNeeded() {
         List<AgencyType> agencyTypes = agencyTypeRepository.count() == 0
                 ? agencyTypeRepository.saveAll(List.of(
-                        agencyType("분당세무서"),
-                        agencyType("분당경찰서"),
-                        agencyType("분당구보건소"),
-                        agencyType("분당동사무소"),
-                        agencyType("판교동사무소"),
-                        agencyType("운중동사무소"),
-                        agencyType("구미동사무소"),
-                        agencyType("구청장사무소"),
-                        agencyType("수내1동사무소"),
-                        agencyType("수내2동사무소"),
-                        agencyType("수내3동사무소"),
-                        agencyType("정자1동사무소"),
-                        agencyType("정자2동사무소"),
-                        agencyType("정자3동사무소"),
-                        agencyType("서현1동사무소"),
-                        agencyType("서현2동사무소"),
-                        agencyType("이매1동사무소"),
-                        agencyType("이매2동사무소"),
-                        agencyType("야탑1동사무소"),
-                        agencyType("야탑2동사무소"),
-                        agencyType("야탑3동사무소"),
-                        agencyType("분당구청"),
-                        agencyType("분당소방서"),
-                        agencyType("서현119안전센터"),
-                        agencyType("판교119안전센터"),
-                        agencyType("수내119안전센터"),
-                        agencyType("야탑119안전센터"),
-                        agencyType("구미119안전센터")))
+                        agencyType("수지구청"),
+                        agencyType("용인서부경찰서"),
+                        agencyType("용인서부소방서"),
+                        agencyType("수지구보건소")))
                 : findAllSorted(agencyTypeRepository);
 
         List<Department> departments = departmentRepository.count() == 0
                 ? departmentRepository.saveAll(List.of(
-                        department("재산세과", agencyTypes.get(0)),
-                        department("조사과", agencyTypes.get(0)),
-                        department("납세자보호담당관", agencyTypes.get(0)),
-                        department("부가가치세과", agencyTypes.get(0)),
-                        department("소득세과", agencyTypes.get(0)),
-                        department("법인세과", agencyTypes.get(0)),
-                        department("징세과", agencyTypes.get(0)),
-                        department("수사2과", agencyTypes.get(1)),
-                        department("수사1과", agencyTypes.get(1)),
+                        // 수지구청 (지자체)
+                        department("가정복지과", agencyTypes.get(0)),
+                        department("건설도로과", agencyTypes.get(0)),
+                        department("교통과", agencyTypes.get(0)),
+                        department("도시건축과", agencyTypes.get(0)),
+                        department("도시미관과", agencyTypes.get(0)),
+                        department("동천동", agencyTypes.get(0)),
+                        department("민원지적과", agencyTypes.get(0)),
+                        department("사회복지과", agencyTypes.get(0)),
+                        department("산업환경과", agencyTypes.get(0)),
+                        department("상현1동", agencyTypes.get(0)),
+                        department("상현2동", agencyTypes.get(0)),
+                        department("상현3동", agencyTypes.get(0)),
+                        department("성복동", agencyTypes.get(0)),
+                        department("세무1과", agencyTypes.get(0)),
+                        department("세무2과", agencyTypes.get(0)),
+                        department("신봉동", agencyTypes.get(0)),
+                        department("자치행정과", agencyTypes.get(0)),
+                        department("죽전1동", agencyTypes.get(0)),
+                        department("죽전2동", agencyTypes.get(0)),
+                        department("죽전3동", agencyTypes.get(0)),
+                        department("풍덕천1동", agencyTypes.get(0)),
+                        department("풍덕천2동", agencyTypes.get(0)),
+                        // 용인서부경찰서 (경찰)
                         department("경무과", agencyTypes.get(1)),
-                        department("여성청소년과", agencyTypes.get(1)),
-                        department("형사과", agencyTypes.get(1)),
-                        department("야탑지구대", agencyTypes.get(1)),
-                        department("서현지구대", agencyTypes.get(1)),
-                        department("금곡지구대", agencyTypes.get(1)),
-                        department("구미파출소", agencyTypes.get(1)),
-                        department("수내파출소", agencyTypes.get(1)),
-                        department("서판교파출소", agencyTypes.get(1)),
-                        department("동판교파출소", agencyTypes.get(1)),
-                        department("청문감사인권관", agencyTypes.get(1)),
+                        department("경비안보과", agencyTypes.get(1)),
+                        department("교통과", agencyTypes.get(1)),
+                        department("구성파출소", agencyTypes.get(1)),
                         department("범죄예방대응과", agencyTypes.get(1)),
-                        department("경비교통과", agencyTypes.get(1)),
-                        department("치안정보안보과", agencyTypes.get(1)),
-                        department("보건행정과", agencyTypes.get(2)),
-                        department("판교보건지소", agencyTypes.get(2)),
-                        department("건강증진과", agencyTypes.get(2)),
-                        department("분당도서관", agencyTypes.get(2)),
-                        department("감염병관리센터", agencyTypes.get(2)),
-                        department("분당동", agencyTypes.get(3)),
-                        department("판교동", agencyTypes.get(4)),
-                        department("운중동", agencyTypes.get(5)),
-                        department("구미동", agencyTypes.get(6)),
-                        department("구청장", agencyTypes.get(7)),
-                        department("수내1동", agencyTypes.get(8)),
-                        department("수내2동", agencyTypes.get(9)),
-                        department("수내3동", agencyTypes.get(10)),
-                        department("정자1동", agencyTypes.get(11)),
-                        department("정자2동", agencyTypes.get(12)),
-                        department("정자3동", agencyTypes.get(13)),
-                        department("서현1동", agencyTypes.get(14)),
-                        department("서현2동", agencyTypes.get(15)),
-                        department("이매1동", agencyTypes.get(16)),
-                        department("이매2동", agencyTypes.get(17)),
-                        department("야탑1동", agencyTypes.get(18)),
-                        department("야탑2동", agencyTypes.get(19)),
-                        department("야탑3동", agencyTypes.get(20)),
-                        department("건축과", agencyTypes.get(21)),
-                        department("도시미관과", agencyTypes.get(21)),
-                        department("경제교통과", agencyTypes.get(21)),
-                        department("금곡동", agencyTypes.get(21)),
-                        department("구미1동", agencyTypes.get(21)),
-                        department("삼평동", agencyTypes.get(21)),
-                        department("세무1과", agencyTypes.get(21)),
-                        department("세무2과", agencyTypes.get(21)),
-                        department("녹지공원과", agencyTypes.get(21)),
-                        department("백현동", agencyTypes.get(21)),
-                        department("시민봉사과", agencyTypes.get(21)),
-                        department("가정복지과", agencyTypes.get(21)),
-                        department("사회복지과", agencyTypes.get(21)),
-                        department("정자동", agencyTypes.get(21)),
-                        department("환경자원과", agencyTypes.get(21)),
-                        department("건설과", agencyTypes.get(21)),
-                        department("구조물관리과", agencyTypes.get(21)),
-                        department("위생안전과", agencyTypes.get(21)),
-                        department("총무과", agencyTypes.get(21)),
-                        department("119구조대", agencyTypes.get(22)),
-                        department("서현119안전센터", agencyTypes.get(23)),
-                        department("판교119안전센터", agencyTypes.get(24)),
-                        department("수내119안전센터", agencyTypes.get(25)),
-                        department("야탑119안전센터", agencyTypes.get(26)),
-                        department("구미119안전센터", agencyTypes.get(27)),
-                        department("소방행정과", agencyTypes.get(22)),
-                        department("재난대응과", agencyTypes.get(22)),
-                        department("현장지휘단", agencyTypes.get(22)),
-                        department("서판교119안전센터", agencyTypes.get(22)),
-                        department("청문인권담당관", agencyTypes.get(22)),
-                        department("화재예방과", agencyTypes.get(22))))
+                        department("보정지구대", agencyTypes.get(1)),
+                        department("상현지구대", agencyTypes.get(1)),
+                        department("수사과", agencyTypes.get(1)),
+                        department("수지지구대", agencyTypes.get(1)),
+                        department("신봉파출소", agencyTypes.get(1)),
+                        department("여성청소년과", agencyTypes.get(1)),
+                        department("죽전지구대", agencyTypes.get(1)),
+                        department("청문감사인권관", agencyTypes.get(1)),
+                        department("치안정보과", agencyTypes.get(1)),
+                        department("형사과", agencyTypes.get(1)),
+                        // 용인서부소방서 (소방)
+                        department("119구조대", agencyTypes.get(2)),
+                        department("구갈119안전센터", agencyTypes.get(2)),
+                        department("기흥119안전센터", agencyTypes.get(2)),
+                        department("동백119안전센터", agencyTypes.get(2)),
+                        department("보정119안전센터", agencyTypes.get(2)),
+                        department("성복119안전센터", agencyTypes.get(2)),
+                        department("소방행정과", agencyTypes.get(2)),
+                        department("수지119안전센터", agencyTypes.get(2)),
+                        department("재난대응과", agencyTypes.get(2)),
+                        department("청문인권담당관", agencyTypes.get(2)),
+                        department("현장지휘단", agencyTypes.get(2)),
+                        department("화재예방과", agencyTypes.get(2)),
+                        // 수지구보건소 (보건)
+                        department("건강증진과", agencyTypes.get(3)),
+                        department("보건행정과", agencyTypes.get(3)),
+                        department("치매안심센터팀", agencyTypes.get(3))))
                 : findAllSorted(departmentRepository);
 
         List<ReportCategory> reportCategories = reportCategoryRepository.count() == 0
@@ -362,9 +321,9 @@ public class DataInitializer implements ApplicationRunner {
         saveUserChildren(users, operators, template.departments());
 
         List<IssueGroup> issueGroups = issueGroupRepository.saveAll(List.of(
-                issueGroup("역삼역 인근 보도블록 파손", "출근 시간대 보행자가 반복적으로 불편을 겪는 구간입니다.", "37.5008450", "127.0366500", "72.40"),
-                issueGroup("삼성동 골목 쓰레기 무단투기", "상가 뒤편에 생활 폐기물과 음식물 쓰레기가 반복 적치됩니다.", "37.5129470", "127.0564090", "58.20"),
-                issueGroup("논현동 어린이보호구역 불법주정차", "등교 시간대 횡단보도 시야가 가려지는 상황입니다.", "37.5112640", "127.0286250", "81.70")));
+                issueGroup("수지구 보도블록 파손 구간", "출근 시간대 보행자가 반복적으로 불편을 겪는 구간입니다.", "ROAD_DAMAGE"),
+                issueGroup("수지구 골목 쓰레기 무단투기", "상가 뒤편에 생활 폐기물과 음식물 쓰레기가 반복 적치됩니다.", "WASTE_AND_DEBRIS"),
+                issueGroup("수지구 어린이보호구역 불법주정차", "등교 시간대 횡단보도 시야가 가려지는 상황입니다.", "ILLEGAL_PARKING")));
 
         List<Report> reports = reportRepository.saveAll(createReports(citizens, issueGroups, template));
 
@@ -375,15 +334,15 @@ public class DataInitializer implements ApplicationRunner {
 
     private List<Report> createReports(List<User> citizens, List<IssueGroup> issueGroups, SeedTemplate template) {
         return List.of(
-                report("보도블록이 내려앉아 발목을 접질릴 뻔했습니다.", "보도블록 파손", "37.5008010", "127.0366220", "서울 강남구 테헤란로 152", "서울 강남구 역삼동 737", citizens.get(0), template.categoryByCode("ROAD_DAMAGE"), template.departmentByName("분당구청", "건설과"), issueGroups.get(0), ReportStatus.SUBMITTED, true),
-                report("비 오는 날마다 같은 보도블록 구간에 물이 고입니다.", "침하된 보도블록", "37.5009120", "127.0367010", "서울 강남구 테헤란로 156", "서울 강남구 역삼동 738", citizens.get(1), template.categoryByCode("ROAD_DAMAGE"), template.departmentByName("분당구청", "건설과"), issueGroups.get(0), ReportStatus.CHECKING, false),
-                report("파손 구간 옆 안내 표시가 없어 야간에 위험합니다.", "보행 안전 표시 필요", "37.5007550", "127.0365900", "서울 강남구 테헤란로 150", "서울 강남구 역삼동 736", citizens.get(2), template.categoryByCode("ROAD_DAMAGE"), template.departmentByName("분당구청", "건설과"), issueGroups.get(0), ReportStatus.IN_PROGRESS, false),
-                report("퇴근길마다 같은 위치에 생활 쓰레기가 쌓입니다.", "쓰레기 무단투기", "37.5129130", "127.0563770", "서울 강남구 영동대로 513", "서울 강남구 삼성동 159", citizens.get(0), template.categoryByCode("WASTE_AND_DEBRIS"), template.departmentByName("분당구청", "환경자원과"), issueGroups.get(1), ReportStatus.RECEIVED, true),
-                report("상가 뒤편에 종량제 봉투가 아닌 폐기물이 방치되어 있습니다.", "폐기물 방치", "37.5128700", "127.0564450", "서울 강남구 영동대로 517", "서울 강남구 삼성동 160", citizens.get(1), template.categoryByCode("WASTE_AND_DEBRIS"), template.departmentByName("분당구청", "환경자원과"), issueGroups.get(1), ReportStatus.SUBMITTED, false),
-                report("음식물 쓰레기 냄새가 골목 전체로 퍼지고 있습니다.", "음식물 쓰레기 적치", "37.5129910", "127.0564910", "서울 강남구 영동대로 519", "서울 강남구 삼성동 161", citizens.get(2), template.categoryByCode("WASTE_AND_DEBRIS"), template.departmentByName("분당구청", "환경자원과"), issueGroups.get(1), ReportStatus.IN_PROGRESS, false),
-                report("어린이보호구역 횡단보도 앞 불법주정차입니다.", "불법주정차", "37.5112210", "127.0285960", "서울 강남구 학동로 120", "서울 강남구 논현동 142", citizens.get(0), template.categoryByCode("ILLEGAL_PARKING"), template.departmentByName("분당구청", "경제교통과"), issueGroups.get(2), ReportStatus.CHECKING, true),
-                report("등교 시간에 횡단보도 모퉁이를 차량이 막고 있습니다.", "보호구역 시야 방해", "37.5113180", "127.0286640", "서울 강남구 학동로 124", "서울 강남구 논현동 143", citizens.get(1), template.categoryByCode("ILLEGAL_PARKING"), template.departmentByName("분당구청", "경제교통과"), issueGroups.get(2), ReportStatus.RECEIVED, false),
-                report("어린이집 앞 정차 차량으로 보행 동선이 막힙니다.", "어린이집 앞 정차", "37.5111760", "127.0285480", "서울 강남구 학동로 118", "서울 강남구 논현동 141", citizens.get(2), template.categoryByCode("ILLEGAL_PARKING"), template.departmentByName("분당구청", "경제교통과"), issueGroups.get(2), ReportStatus.SUBMITTED, false));
+                report("보도블록이 내려앉아 발목을 접질릴 뻔했습니다.", "보도블록 파손", "경기도 용인시 수지구 풍덕천로 152", "경기도 용인시 수지구 풍덕천동 737", citizens.get(0), template.categoryByCode("ROAD_DAMAGE"), template.departmentByName("수지구청", "건설도로과"), issueGroups.get(0), ReportStatus.SUBMITTED, true),
+                report("비 오는 날마다 같은 보도블록 구간에 물이 고입니다.", "침하된 보도블록", "경기도 용인시 수지구 풍덕천로 156", "경기도 용인시 수지구 풍덕천동 738", citizens.get(1), template.categoryByCode("ROAD_DAMAGE"), template.departmentByName("수지구청", "건설도로과"), issueGroups.get(0), ReportStatus.CHECKING, false),
+                report("파손 구간 옆 안내 표시가 없어 야간에 위험합니다.", "보행 안전 표시 필요", "경기도 용인시 수지구 풍덕천로 150", "경기도 용인시 수지구 풍덕천동 736", citizens.get(2), template.categoryByCode("ROAD_DAMAGE"), template.departmentByName("수지구청", "건설도로과"), issueGroups.get(0), ReportStatus.IN_PROGRESS, false),
+                report("퇴근길마다 같은 위치에 생활 쓰레기가 쌓입니다.", "쓰레기 무단투기", "경기도 용인시 수지구 죽전로 513", "경기도 용인시 수지구 죽전동 159", citizens.get(0), template.categoryByCode("WASTE_AND_DEBRIS"), template.departmentByName("수지구청", "산업환경과"), issueGroups.get(1), ReportStatus.RECEIVED, true),
+                report("상가 뒤편에 종량제 봉투가 아닌 폐기물이 방치되어 있습니다.", "폐기물 방치", "경기도 용인시 수지구 죽전로 517", "경기도 용인시 수지구 죽전동 160", citizens.get(1), template.categoryByCode("WASTE_AND_DEBRIS"), template.departmentByName("수지구청", "산업환경과"), issueGroups.get(1), ReportStatus.SUBMITTED, false),
+                report("음식물 쓰레기 냄새가 골목 전체로 퍼지고 있습니다.", "음식물 쓰레기 적치", "경기도 용인시 수지구 죽전로 519", "경기도 용인시 수지구 죽전동 161", citizens.get(2), template.categoryByCode("WASTE_AND_DEBRIS"), template.departmentByName("수지구청", "산업환경과"), issueGroups.get(1), ReportStatus.IN_PROGRESS, false),
+                report("어린이보호구역 횡단보도 앞 불법주정차입니다.", "불법주정차", "경기도 용인시 수지구 상현로 120", "경기도 용인시 수지구 상현동 142", citizens.get(0), template.categoryByCode("ILLEGAL_PARKING"), template.departmentByName("수지구청", "교통과"), issueGroups.get(2), ReportStatus.CHECKING, true),
+                report("등교 시간에 횡단보도 모퉁이를 차량이 막고 있습니다.", "보호구역 시야 방해", "경기도 용인시 수지구 상현로 124", "경기도 용인시 수지구 상현동 143", citizens.get(1), template.categoryByCode("ILLEGAL_PARKING"), template.departmentByName("수지구청", "교통과"), issueGroups.get(2), ReportStatus.RECEIVED, false),
+                report("어린이집 앞 정차 차량으로 보행 동선이 막힙니다.", "어린이집 앞 정차", "경기도 용인시 수지구 상현로 118", "경기도 용인시 수지구 상현동 141", citizens.get(2), template.categoryByCode("ILLEGAL_PARKING"), template.departmentByName("수지구청", "교통과"), issueGroups.get(2), ReportStatus.SUBMITTED, false));
     }
 
     private void saveUserChildren(List<User> users, List<User> operators, List<Department> departments) {
@@ -398,9 +357,9 @@ public class DataInitializer implements ApplicationRunner {
 
         List<OfficerDepartment> officerDepartments = new ArrayList<>();
         for (User operator : operators) {
-            officerDepartments.add(officerDepartment(operator, departmentByName(departments, "분당구청", "건설과")));
-            officerDepartments.add(officerDepartment(operator, departmentByName(departments, "분당구청", "환경자원과")));
-            officerDepartments.add(officerDepartment(operator, departmentByName(departments, "분당구청", "경제교통과")));
+            officerDepartments.add(officerDepartment(operator, departmentByName(departments, "수지구청", "건설도로과")));
+            officerDepartments.add(officerDepartment(operator, departmentByName(departments, "수지구청", "산업환경과")));
+            officerDepartments.add(officerDepartment(operator, departmentByName(departments, "수지구청", "교통과")));
         }
 
         userConsentRepository.saveAll(consents);
@@ -524,19 +483,19 @@ public class DataInitializer implements ApplicationRunner {
                 .get();
     }
 
-    private IssueGroup issueGroup(String title, String content, String latitude, String longitude, String riskScore) {
+    private IssueGroup issueGroup(String title, String content, String categoryCode) {
         return entity(IssueGroup.class)
                 .set("title", title)
                 .set("content", content)
-                .set("groupLatitude", new BigDecimal(latitude))
-                .set("groupLongitude", new BigDecimal(longitude))
+                .set("groupLatitude", randomLatitude())
+                .set("groupLongitude", randomLongitude())
                 .set("reportCount", 3)
                 .set("yesCount", 2)
                 .set("noCount", 0)
                 .set("unknownCount", 1)
                 .set("recentReportedAt", LocalDateTime.now().minusHours(2))
                 .set("status", IssueGroupStatus.ACTIVE)
-                .set("riskScore", new BigDecimal(riskScore))
+                .set("riskScore", riskScoreFor(categoryCode))
                 .set("groupDiameterMeters", BigDecimal.ZERO)
                 .get();
     }
@@ -558,8 +517,6 @@ public class DataInitializer implements ApplicationRunner {
     private Report report(
             String title,
             String summary,
-            String latitude,
-            String longitude,
             String roadAddress,
             String jibunAddress,
             User user,
@@ -571,16 +528,16 @@ public class DataInitializer implements ApplicationRunner {
         return entity(Report.class)
                 .set("title", title)
                 .set("contents", "{\"summary\":\"" + summary + "\",\"source\":\"dummy-seed\",\"urgency\":\"normal\"}")
-                .set("latitude", new BigDecimal(latitude))
-                .set("longitude", new BigDecimal(longitude))
+                .set("latitude", randomLatitude())
+                .set("longitude", randomLongitude())
                 .set("embedding", dummyEmbedding(title))
                 .set("roadAddress", roadAddress)
                 .set("jibunAddress", jibunAddress)
-                .set("sido", "서울특별시")
-                .set("sigungu", "강남구")
-                .set("eupmyeondong", "역삼동")
+                .set("sido", "경기도")
+                .set("sigungu", "용인시 수지구")
+                .set("eupmyeondong", "풍덕천동")
                 .set("occurredAt", LocalDateTime.now().minusHours(4))
-                .set("riskScore", new BigDecimal("64.50"))
+                .set("riskScore", riskScoreFor(category.getCategoryCode()))
                 .set("assignmentReason", "초기 더미 데이터용 담당 부서 배정 근거입니다.")
                 .set("status", status)
                 .set("visibility", ReportVisibility.PUBLIC)
@@ -677,6 +634,29 @@ public class DataInitializer implements ApplicationRunner {
             case 2 -> "담당 부서에서 현장 확인을 시작했습니다.";
             default -> "유사 신고와 묶어 처리 중입니다.";
         };
+    }
+
+    // 수지구 범위 랜덤 좌표 (위도 37.31~37.34, 경도 127.09~127.12)
+    private BigDecimal randomLatitude() {
+        return randomInRange(37.31, 37.34, 7);
+    }
+
+    private BigDecimal randomLongitude() {
+        return randomInRange(127.09, 127.12, 7);
+    }
+
+    // 카테고리별 위험도: 쓰레기 무단투기 < 50, 맨홀·불법주차 등 시설/질서 50~70, 인명피해 70 이상
+    private BigDecimal riskScoreFor(String categoryCode) {
+        return switch (categoryCode) {
+            case "WASTE_AND_DEBRIS" -> randomInRange(30.0, 50.0, 2);
+            case "VULNERABLE_PERSON_RISK", "FIRE_RISK", "GAS_ELECTRIC_RISK" -> randomInRange(70.0, 90.0, 2);
+            default -> randomInRange(50.0, 70.0, 2);
+        };
+    }
+
+    private BigDecimal randomInRange(double min, double max, int scale) {
+        double value = min + random.nextDouble() * (max - min);
+        return new BigDecimal(String.format(Locale.ROOT, "%." + scale + "f", value));
     }
 
     private <T> List<T> findAllSorted(JpaRepository<T, Long> repository) {
