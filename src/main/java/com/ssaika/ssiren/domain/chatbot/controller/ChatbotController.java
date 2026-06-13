@@ -36,8 +36,6 @@ import org.springframework.web.bind.annotation.RestController;
 @Validated
 public class ChatbotController {
 
-    private static final Long TEST_USER_ID = 1L;
-
     private final ChatbotService chatbotService;
 
     @GetMapping("/sessions")
@@ -65,8 +63,9 @@ public class ChatbotController {
     }
 
     @PostMapping("/sessions")
-    public ResponseEntity<BaseResponse<ChatbotSessionResponse>> saveChatbotSession() {
-        ChatbotSessionResponse response = chatbotService.saveChatbotSession(TEST_USER_ID);
+    public ResponseEntity<BaseResponse<ChatbotSessionResponse>> saveChatbotSession(
+        @AuthenticationPrincipal Long userId) {
+        ChatbotSessionResponse response = chatbotService.saveChatbotSession(userId);
 
         return ResponseEntity.status(HttpStatus.CREATED)
             .body(BaseResponse.success(HttpStatus.CREATED, "챗봇 세션 생성 성공", response));
@@ -97,9 +96,10 @@ public class ChatbotController {
 
     @PostMapping("/sessions/{sessionId}")
     public ResponseEntity<BaseResponse<ChatbotMessageSendResponse>> saveChatbotMessage(
+        @AuthenticationPrincipal Long userId,
         @PathVariable Long sessionId,
         @Valid @RequestBody ChatbotMessageSendRequest request) {
-        ChatbotMessageSendResponse response = chatbotService.saveChatbotMessage(TEST_USER_ID,
+        ChatbotMessageSendResponse response = chatbotService.saveChatbotMessage(userId,
             sessionId, request);
 
         return ResponseEntity.status(HttpStatus.CREATED)

@@ -7,7 +7,6 @@ import jakarta.servlet.DispatcherType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -42,8 +41,6 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/auth/login").permitAll()
                 .requestMatchers("/api/v1/auth/token/refresh").permitAll()
                     .requestMatchers("/api/v1/test/auth/**").permitAll()
-                .requestMatchers(HttpMethod.POST, "/api/v1/chatbots/sessions").permitAll()
-                .requestMatchers(HttpMethod.POST, "/api/v1/chatbots/sessions/*").permitAll()
                 .requestMatchers("/api/v1/auth/logout").authenticated()
                 .requestMatchers("/api/v1/reports").authenticated()
                 .requestMatchers("/api/v1/reports/**").authenticated()
