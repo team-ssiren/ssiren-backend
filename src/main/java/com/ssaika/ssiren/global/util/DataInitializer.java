@@ -324,8 +324,17 @@ public class DataInitializer implements ApplicationRunner {
                 issueGroup("수지구 보도블록 파손 구간", "출근 시간대 보행자가 반복적으로 불편을 겪는 구간입니다.", "ROAD_DAMAGE"),
                 issueGroup("수지구 골목 쓰레기 무단투기", "상가 뒤편에 생활 폐기물과 음식물 쓰레기가 반복 적치됩니다.", "WASTE_AND_DEBRIS"),
                 issueGroup("수지구 어린이보호구역 불법주정차", "등교 시간대 횡단보도 시야가 가려지는 상황입니다.", "ILLEGAL_PARKING")));
+        List<FixedIssueGroupSeed> fixedIssueGroupSeeds = fixedIssueGroupSeeds();
+        List<FixedReportSeed> fixedReportSeeds = fixedReportSeeds();
+        issueGroups = new ArrayList<>(issueGroups);
+        issueGroups.addAll(issueGroupRepository.saveAll(
+                fixedIssueGroupSeeds.stream()
+                        .map(seed -> issueGroup(seed.title(), seed.content(), seed.latitude(), seed.longitude(), seed.riskScore(), seed.reportCount()))
+                        .toList()));
 
         List<Report> reports = reportRepository.saveAll(createReports(citizens, issueGroups, template));
+        reports = new ArrayList<>(reports);
+        reports.addAll(reportRepository.saveAll(createFixedReports(citizens, issueGroups, template, fixedReportSeeds, 3)));
 
         saveReportChildren(reports, users, operators.get(0));
         saveChatbotData(users);
@@ -343,6 +352,106 @@ public class DataInitializer implements ApplicationRunner {
                 report("어린이보호구역 횡단보도 앞 불법주정차입니다.", "불법주정차", "경기도 용인시 수지구 상현로 120", "경기도 용인시 수지구 상현동 142", citizens.get(0), template.categoryByCode("ILLEGAL_PARKING"), template.departmentByName("수지구청", "교통과"), issueGroups.get(2), ReportStatus.CHECKING, true),
                 report("등교 시간에 횡단보도 모퉁이를 차량이 막고 있습니다.", "보호구역 시야 방해", "경기도 용인시 수지구 상현로 124", "경기도 용인시 수지구 상현동 143", citizens.get(1), template.categoryByCode("ILLEGAL_PARKING"), template.departmentByName("수지구청", "교통과"), issueGroups.get(2), ReportStatus.RECEIVED, false),
                 report("어린이집 앞 정차 차량으로 보행 동선이 막힙니다.", "어린이집 앞 정차", "경기도 용인시 수지구 상현로 118", "경기도 용인시 수지구 상현동 141", citizens.get(2), template.categoryByCode("ILLEGAL_PARKING"), template.departmentByName("수지구청", "교통과"), issueGroups.get(2), ReportStatus.SUBMITTED, false));
+    }
+
+    private List<Report> createFixedReports(
+            List<User> citizens,
+            List<IssueGroup> issueGroups,
+            SeedTemplate template,
+            List<FixedReportSeed> seeds,
+            int issueGroupStartIndex) {
+        List<Report> reports = new ArrayList<>();
+        for (int index = 0; index < seeds.size(); index++) {
+            FixedReportSeed seed = seeds.get(index);
+            reports.add(report(
+                    seed.title(),
+                    seed.summary(),
+                    seed.latitude(),
+                    seed.longitude(),
+                    seed.roadAddress(),
+                    seed.jibunAddress(),
+                    seed.riskScore(),
+                    citizens.get(index % citizens.size()),
+                    template.categoryByCode(seed.categoryCode()),
+                    template.departmentByName(seed.agencyName(), seed.departmentName()),
+                    issueGroups.get(issueGroupStartIndex + seed.issueGroupIndex()),
+                    seed.status(),
+                    true));
+        }
+        return reports;
+    }
+
+    private List<FixedIssueGroupSeed> fixedIssueGroupSeeds() {
+        return List.of(
+                fixedIssueGroupSeed("죽전동 상가 골목 불법주정차 반복", "상가 진입로와 보행로 주변에 차량이 반복적으로 정차해 차량 교행과 보행 안전에 지장이 있습니다.", "37.3532878", "127.0703683", "30.00", 5),
+                fixedIssueGroupSeed("죽전동 편의점 앞 주취자 불안 신고", "편의점과 벤치 주변에서 주취자가 머물며 고성, 출입 방해, 보행자 접촉 시도가 반복되고 있습니다.", "37.3533378", "127.0703883", "60.00", 3),
+                fixedIssueGroupSeed("동편 상가 앞 고성 및 시비", "상가 앞 인도에서 고성과 시비가 이어져 주변 보행자가 우회하고 현장 확인 요청이 반복됩니다.", "37.3533676", "127.0725919", "80.00", 3),
+                fixedIssueGroupSeed("남서쪽 골목 생활폐기물 무단투기", "골목 입구와 상가 뒤편에 종량제 외 폐기물과 음식물 쓰레기가 반복적으로 쌓이고 있습니다.", "37.3514273", "127.0702762", "30.00", 4),
+                fixedIssueGroupSeed("남서쪽 이면도로 불법주정차 반복", "이면도로와 교차로 주변에 차량이 연속 정차해 통행 폭이 좁아지고 진입이 어려운 상황이 반복됩니다.", "37.3514273", "127.0702762", "30.00", 10));
+    }
+
+    private FixedIssueGroupSeed fixedIssueGroupSeed(
+            String title,
+            String content,
+            String latitude,
+            String longitude,
+            String riskScore,
+            int reportCount) {
+        return new FixedIssueGroupSeed(title, content, latitude, longitude, riskScore, reportCount);
+    }
+    private List<FixedReportSeed> fixedReportSeeds() {
+        return List.of(
+                fixedReportSeed(0, "골목 입구에 세워진 차량 때문에 차가 한 대씩만 지나갑니다.", "골목 입구 불법주정차", "37.3532878", "127.0703683", "30.00", "ILLEGAL_PARKING", "수지구청", "교통과", ReportStatus.SUBMITTED),
+                fixedReportSeed(0, "상가 모퉁이에 장시간 정차한 차량 때문에 우회전 차량 시야가 가립니다.", "모퉁이 장시간 정차", "37.3534078", "127.0704583", "30.00", "ILLEGAL_PARKING", "수지구청", "교통과", ReportStatus.RECEIVED),
+                fixedReportSeed(0, "보행로 가장자리까지 차량이 올라와 유모차가 차도로 돌아가고 있습니다.", "보행로 침범 주차", "37.3531878", "127.0705083", "30.00", "ILLEGAL_PARKING", "수지구청", "교통과", ReportStatus.SUBMITTED),
+                fixedReportSeed(0, "건물 출입구 앞 정차 차량 때문에 사람과 배달 오토바이가 뒤섞입니다.", "출입구 앞 정차", "37.3534478", "127.0702483", "30.00", "ILLEGAL_PARKING", "수지구청", "교통과", ReportStatus.CHECKING),
+                fixedReportSeed(0, "소방 통로 표시선 안쪽에 차량이 계속 세워져 있습니다.", "소방 통로 주차", "37.3531478", "127.0702883", "30.00", "ILLEGAL_PARKING", "수지구청", "교통과", ReportStatus.SUBMITTED),
+                fixedReportSeed(1, "편의점 앞 벤치에서 술에 취한 사람이 계속 소리를 지르고 있습니다.", "편의점 앞 주취자 고성", "37.3535078", "127.0703883", "60.00", "INTOXICATED_PERSON_CONCERN", "용인서부경찰서", "범죄예방대응과", ReportStatus.RECEIVED),
+                fixedReportSeed(1, "주취자가 지나가는 사람에게 말을 걸며 따라붙어 불안합니다.", "보행자 접촉 시도", "37.3530878", "127.0705683", "60.00", "INTOXICATED_PERSON_CONCERN", "용인서부경찰서", "범죄예방대응과", ReportStatus.CHECKING),
+                fixedReportSeed(1, "출입문 근처에 취객이 앉아 있어 손님들이 들어가기를 꺼립니다.", "출입 방해 주취자", "37.3533378", "127.0701283", "60.00", "INTOXICATED_PERSON_CONCERN", "용인서부경찰서", "범죄예방대응과", ReportStatus.SUBMITTED),
+                fixedReportSeed(2, "상가 앞에서 두 사람이 큰 소리로 다투고 있어 보행자가 피하고 있습니다.", "상가 앞 고성 시비", "37.3533676", "127.0725919", "80.00", "DISORDERLY_CONDUCT_DISPUTE", "용인서부경찰서", "범죄예방대응과", ReportStatus.RECEIVED),
+                fixedReportSeed(2, "몸싸움으로 번질 것처럼 서로 밀치고 있어 현장 확인이 필요합니다.", "몸싸움 우려 시비", "37.3535076", "127.0725019", "80.00", "DISORDERLY_CONDUCT_DISPUTE", "용인서부경찰서", "범죄예방대응과", ReportStatus.CHECKING),
+                fixedReportSeed(2, "인도 한가운데에서 고성이 오가며 사람들이 차도로 돌아가고 있습니다.", "인도 위 고성 다툼", "37.3532476", "127.0727219", "80.00", "DISORDERLY_CONDUCT_DISPUTE", "용인서부경찰서", "범죄예방대응과", ReportStatus.SUBMITTED),
+                fixedReportSeed(3, "골목 입구에 종량제 봉투가 아닌 생활폐기물이 쌓여 있습니다.", "생활폐기물 무단 적치", "37.3514273", "127.0702762", "30.00", "WASTE_AND_DEBRIS", "수지구청", "산업환경과", ReportStatus.SUBMITTED),
+                fixedReportSeed(3, "상가 뒤편에 박스와 비닐류가 며칠째 치워지지 않고 있습니다.", "상가 뒤편 폐기물", "37.3515573", "127.0704162", "30.00", "WASTE_AND_DEBRIS", "수지구청", "산업환경과", ReportStatus.RECEIVED),
+                fixedReportSeed(3, "음식물 쓰레기 봉투가 터져 냄새가 골목까지 퍼집니다.", "음식물 쓰레기 방치", "37.3512873", "127.0703962", "30.00", "WASTE_AND_DEBRIS", "수지구청", "산업환경과", ReportStatus.SUBMITTED),
+                fixedReportSeed(3, "분리수거장 밖에 폐기물이 계속 놓여 통행 공간이 줄었습니다.", "분리수거장 밖 적치", "37.3515073", "127.0700862", "30.00", "WASTE_AND_DEBRIS", "수지구청", "산업환경과", ReportStatus.CHECKING),
+                fixedReportSeed(4, "이면도로 한쪽을 차량이 막아 마주 오는 차가 후진해야 합니다.", "이면도로 통행 방해", "37.3514273", "127.0702762", "30.00", "ILLEGAL_PARKING", "수지구청", "교통과", ReportStatus.SUBMITTED),
+                fixedReportSeed(4, "횡단 지점 가까이에 정차한 차량 때문에 보행자 확인이 어렵습니다.", "횡단 지점 정차", "37.3516073", "127.0702762", "30.00", "ILLEGAL_PARKING", "수지구청", "교통과", ReportStatus.RECEIVED),
+                fixedReportSeed(4, "주차장 출입로 앞에 차량이 서 있어 진입 차량이 대기합니다.", "주차장 출입로 막힘", "37.3512473", "127.0702762", "30.00", "ILLEGAL_PARKING", "수지구청", "교통과", ReportStatus.SUBMITTED),
+                fixedReportSeed(4, "보도 가장자리에 걸쳐 세운 차량 때문에 보행자가 차도로 내려갑니다.", "보도 걸침 주차", "37.3514273", "127.0704862", "30.00", "ILLEGAL_PARKING", "수지구청", "교통과", ReportStatus.CHECKING),
+                fixedReportSeed(4, "교차로 모퉁이에 세워진 차량 때문에 회전 차량이 크게 돌아갑니다.", "교차로 모퉁이 주차", "37.3514273", "127.0700662", "30.00", "ILLEGAL_PARKING", "수지구청", "교통과", ReportStatus.SUBMITTED),
+                fixedReportSeed(4, "차량 두 대가 연속으로 정차해 차로 폭이 거의 남지 않았습니다.", "연속 정차 차량", "37.3515573", "127.0701262", "30.00", "ILLEGAL_PARKING", "수지구청", "교통과", ReportStatus.RECEIVED),
+                fixedReportSeed(4, "배송 차량이 장시간 정차해 뒤 차량들이 중앙선을 넘어갑니다.", "배송 차량 장시간 정차", "37.3512973", "127.0704262", "30.00", "ILLEGAL_PARKING", "수지구청", "교통과", ReportStatus.SUBMITTED),
+                fixedReportSeed(4, "소화전 주변에 차량이 세워져 긴급 상황이 걱정됩니다.", "소화전 주변 주차", "37.3516273", "127.0704862", "30.00", "ILLEGAL_PARKING", "수지구청", "교통과", ReportStatus.CHECKING),
+                fixedReportSeed(4, "골목 입구 정차 차량 때문에 택배차가 들어오지 못하고 있습니다.", "골목 입구 정차", "37.3512173", "127.0700562", "30.00", "ILLEGAL_PARKING", "수지구청", "교통과", ReportStatus.RECEIVED),
+                fixedReportSeed(4, "주정차 금지 표지 아래 같은 차량이 반복적으로 서 있습니다.", "금지구역 반복 주차", "37.3516773", "127.0702462", "30.00", "ILLEGAL_PARKING", "수지구청", "교통과", ReportStatus.SUBMITTED));
+    }
+
+    private FixedReportSeed fixedReportSeed(
+            int issueGroupIndex,
+            String title,
+            String summary,
+            String latitude,
+            String longitude,
+            String riskScore,
+            String categoryCode,
+            String agencyName,
+            String departmentName,
+            ReportStatus status) {
+        return new FixedReportSeed(
+                issueGroupIndex,
+                title,
+                summary,
+                latitude,
+                longitude,
+                "경기도 용인시 수지구 죽전동 일대",
+                "경기도 용인시 수지구 죽전동 일대",
+                riskScore,
+                categoryCode,
+                agencyName,
+                departmentName,
+                status);
     }
 
     private void saveUserChildren(List<User> users, List<User> operators, List<Department> departments) {
@@ -500,6 +609,23 @@ public class DataInitializer implements ApplicationRunner {
                 .get();
     }
 
+    private IssueGroup issueGroup(String title, String content, String latitude, String longitude, String riskScore, int reportCount) {
+        return entity(IssueGroup.class)
+                .set("title", title)
+                .set("content", content)
+                .set("groupLatitude", new BigDecimal(latitude))
+                .set("groupLongitude", new BigDecimal(longitude))
+                .set("reportCount", reportCount)
+                .set("yesCount", Math.min(reportCount, 2))
+                .set("noCount", 0)
+                .set("unknownCount", Math.max(reportCount - 2, 0))
+                .set("recentReportedAt", LocalDateTime.now().minusHours(1))
+                .set("status", IssueGroupStatus.ACTIVE)
+                .set("riskScore", new BigDecimal(riskScore))
+                .set("groupDiameterMeters", BigDecimal.ZERO)
+                .get();
+    }
+
     private ReportCategoryMergeRule mergeRule(
             ReportCategory category,
             int linkRadiusMeters,
@@ -539,6 +665,45 @@ public class DataInitializer implements ApplicationRunner {
                 .set("occurredAt", LocalDateTime.now().minusHours(4))
                 .set("riskScore", riskScoreFor(category.getCategoryCode()))
                 .set("assignmentReason", "초기 더미 데이터용 담당 부서 배정 근거입니다.")
+                .set("status", status)
+                .set("visibility", ReportVisibility.PUBLIC)
+                .set("isDeleted", false)
+                .set("isRepresentative", representative)
+                .set("user", user)
+                .set("category", category)
+                .set("issueGroup", issueGroup)
+                .set("department", department)
+                .get();
+    }
+
+    private Report report(
+            String title,
+            String summary,
+            String latitude,
+            String longitude,
+            String roadAddress,
+            String jibunAddress,
+            String riskScore,
+            User user,
+            ReportCategory category,
+            Department department,
+            IssueGroup issueGroup,
+            ReportStatus status,
+            boolean representative) {
+        return entity(Report.class)
+                .set("title", title)
+                .set("contents", "{\"summary\":\"" + summary + "\",\"source\":\"fixed-seed\",\"urgency\":\"normal\"}")
+                .set("latitude", new BigDecimal(latitude))
+                .set("longitude", new BigDecimal(longitude))
+                .set("embedding", dummyEmbedding(title))
+                .set("roadAddress", roadAddress)
+                .set("jibunAddress", jibunAddress)
+                .set("sido", "경기도")
+                .set("sigungu", "용인시 수지구")
+                .set("eupmyeondong", "죽전동")
+                .set("occurredAt", LocalDateTime.now().minusHours(1))
+                .set("riskScore", new BigDecimal(riskScore))
+                .set("assignmentReason", "요청 좌표 기반 시딩 데이터용 부서 배정입니다.")
                 .set("status", status)
                 .set("visibility", ReportVisibility.PUBLIC)
                 .set("isDeleted", false)
@@ -691,6 +856,30 @@ public class DataInitializer implements ApplicationRunner {
         } catch (ReflectiveOperationException exception) {
             throw new IllegalStateException("Failed to create seed entity: " + type.getSimpleName(), exception);
         }
+    }
+
+    private record FixedIssueGroupSeed(
+            String title,
+            String content,
+            String latitude,
+            String longitude,
+            String riskScore,
+            int reportCount) {
+    }
+
+    private record FixedReportSeed(
+            int issueGroupIndex,
+            String title,
+            String summary,
+            String latitude,
+            String longitude,
+            String roadAddress,
+            String jibunAddress,
+            String riskScore,
+            String categoryCode,
+            String agencyName,
+            String departmentName,
+            ReportStatus status) {
     }
 
     private record SeedTemplate(List<Department> departments, List<ReportCategory> reportCategories) {
