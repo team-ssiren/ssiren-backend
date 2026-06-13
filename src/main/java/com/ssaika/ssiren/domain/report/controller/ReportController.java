@@ -62,7 +62,7 @@ public class ReportController {
         ReportCreateRequest request = parseReportCreateRequest(requestJson);
         ReportCreateResponse response = reportService.createReport(userId, request, images);
 
-        return ResponseEntity.ok(BaseResponse.success("제보 등록 성공", response));
+        return ResponseEntity.ok(BaseResponse.success("?쒕낫 ?깅줉 ?깃났", response));
     }
 
     @PostMapping(value = "/drafts", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -71,7 +71,7 @@ public class ReportController {
         @ModelAttribute @Valid ReportDraftRequest request) {
         ReportDraftCreateResponse response = reportService.createReportDraft(userId, request);
 
-        return ResponseEntity.ok(BaseResponse.success("제보 초안 생성 성공", response));
+        return ResponseEntity.ok(BaseResponse.success("?쒕낫 珥덉븞 ?앹꽦 ?깃났", response));
     }
 
     @GetMapping
@@ -89,7 +89,7 @@ public class ReportController {
             reportService.getReports(status, categoryId, sido, sigungu, eupmyeondong, from, to, pageable)
         );
 
-        return ResponseEntity.ok(BaseResponse.success("전체 제보 목록 조회 성공", response));
+        return ResponseEntity.ok(BaseResponse.success("?꾩껜 ?쒕낫 紐⑸줉 議고쉶 ?깃났", response));
     }
 
     @GetMapping("/me")
@@ -105,7 +105,7 @@ public class ReportController {
             reportService.getMyReports(userId, status, categoryId, from, to, pageable)
         );
 
-        return ResponseEntity.ok(BaseResponse.success("내 제보 목록 조회 성공", response));
+        return ResponseEntity.ok(BaseResponse.success("???쒕낫 紐⑸줉 議고쉶 ?깃났", response));
     }
     @GetMapping("/me/{reportId}")
     public ResponseEntity<BaseResponse<MyReportDetailResponse>> getMyReport(
@@ -113,7 +113,7 @@ public class ReportController {
         @PathVariable Long reportId) {
         MyReportDetailResponse response = reportService.getMyReport(userId, reportId);
 
-        return ResponseEntity.ok(BaseResponse.success("내 제보 상세 조회 성공", response));
+        return ResponseEntity.ok(BaseResponse.success("???쒕낫 ?곸꽭 議고쉶 ?깃났", response));
     }
     @PatchMapping("/me/{reportId}")
     public ResponseEntity<BaseResponse<MyReportUpdateResponse>> updateMyReport(
@@ -122,7 +122,7 @@ public class ReportController {
         @RequestBody @Valid MyReportUpdateRequest request) {
         MyReportUpdateResponse response = reportService.updateMyReport(userId, reportId, request);
 
-        return ResponseEntity.ok(BaseResponse.success("내 제보 수정 성공", response));
+        return ResponseEntity.ok(BaseResponse.success("???쒕낫 ?섏젙 ?깃났", response));
     }
     @DeleteMapping("/me/{reportId}")
     public ResponseEntity<BaseResponse<MyReportDeleteResponse>> deleteMyReport(
@@ -130,7 +130,7 @@ public class ReportController {
         @PathVariable Long reportId) {
         MyReportDeleteResponse response = reportService.deleteMyReport(userId, reportId);
 
-        return ResponseEntity.ok(BaseResponse.success("내 제보 삭제 성공", response));
+        return ResponseEntity.ok(BaseResponse.success("???쒕낫 ??젣 ?깃났", response));
     }
     @PostMapping("/{reportId}/reactions")
     public ResponseEntity<BaseResponse<ReportReactionResponse>> saveReportReaction(
@@ -143,7 +143,7 @@ public class ReportController {
             request
         );
 
-        return ResponseEntity.ok(BaseResponse.success("제보 반응 반영 성공", response));
+        return ResponseEntity.ok(BaseResponse.success("공감이 반영됐어요", response));
     }
 
     @GetMapping("/categories")
@@ -152,14 +152,14 @@ public class ReportController {
                 reportService.getReportCategories()
         );
 
-        return ResponseEntity.ok(BaseResponse.success("제보 카테고리 목록 조회 성공", response));
+        return ResponseEntity.ok(BaseResponse.success("?쒕낫 移댄뀒怨좊━ 紐⑸줉 議고쉶 ?깃났", response));
     }
 
     private ReportCreateRequest parseReportCreateRequest(String requestJson) {
         try {
             return objectMapper.readValue(requestJson, ReportCreateRequest.class);
         } catch (JsonProcessingException e) {
-            throw new CustomException("제보 등록 요청 JSON 형식이 올바르지 않습니다.", ErrorCode.INVALID_FORMAT);
+            throw new CustomException("?쒕낫 ?깅줉 ?붿껌 JSON ?뺤떇???щ컮瑜댁? ?딆뒿?덈떎.", ErrorCode.INVALID_FORMAT);
         }
     }
 }
