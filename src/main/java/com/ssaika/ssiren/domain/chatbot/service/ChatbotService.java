@@ -65,7 +65,6 @@ public class ChatbotService {
 
     private static final String NEW_CHAT_TITLE = "새 대화";
     private static final int HISTORY_SIZE = 10;
-    private static final int CONTEXT_REPORT_SIZE = 5;
 
     private final ChatbotAiClient chatbotAiClient;
     private final ChatbotMessageRepository chatbotMessageRepository;
@@ -185,7 +184,7 @@ public class ChatbotService {
 
             return new ChatbotMessagePreparation(history);
         });
-        String botAnswer = resolveBotAnswer(userId, request, preparation.history())
+        ChatbotAnswerResult answerResult = resolveBotAnswer(userId, request, preparation.history())
             .orElseThrow(() -> new CustomException(
                 ErrorCode.CHATBOT_AI_RESPONSE_FAILED.getMessage(),
                 ErrorCode.CHATBOT_AI_RESPONSE_FAILED
@@ -195,7 +194,7 @@ public class ChatbotService {
             userId,
             sessionId,
             request,
-            botAnswer
+            answerResult
         ));
     }
 
@@ -203,32 +202,29 @@ public class ChatbotService {
         Long userId,
         Long sessionId,
         ChatbotMessageSendRequest request,
-        String botAnswer) {
+        ChatbotAnswerResult answerResult) {
         ChatbotSession session = getOwnedSession(userId, sessionId);
         LocalDateTime now = LocalDateTime.now();
         boolean shouldUpdateTitle = NEW_CHAT_TITLE.equals(session.getTitle())
             && chatbotMessageRepository.countBySession_Id(sessionId) == 0;
-        ChatbotMessage userMessage = chatbotMessageRepository.save(ChatbotMessage.create(
+        chatbotMessageRepository.save(ChatbotMessage.create(
             session,
             ChatbotSenderType.USER,
             request.message(),
             now
         ));
-        ChatbotMessage botMessage = chatbotMessageRepository.save(ChatbotMessage.create(
+        chatbotMessageRepository.save(ChatbotMessage.create(
             session,
             ChatbotSenderType.BOT,
-            botAnswer,
+            answerResult.answer(),
             LocalDateTime.now()
         ));
 
         if (shouldUpdateTitle) {
-            updateChatTitle(sessionId, session, request.message(), botAnswer);
+            updateChatTitle(sessionId, session, request.message(), answerResult.answer());
         }
 
-        return ChatbotMessageSendResponse.of(
-            ChatbotSessionResponse.from(session),
-            List.of(ChatbotMessageResponse.from(userMessage), ChatbotMessageResponse.from(botMessage))
-        );
+        return ChatbotMessageSendResponse.of(answerResult.answer(), answerResult.usedReportIds());
     }
 
     private void generateSessionTitle(ChatbotSession session, String question, String botAnswer) {
@@ -282,7 +278,7 @@ public class ChatbotService {
             .toList();
     }
 
-    private Optional<String> resolveBotAnswer(
+    private Optional<ChatbotAnswerResult> resolveBotAnswer(
         Long userId,
         ChatbotMessageSendRequest request,
         List<ChatbotHistoryMessage> history) {
@@ -323,7 +319,7 @@ public class ChatbotService {
             .ifPresent(session::updateTitle);
     }
 
-    private Optional<String> resolveBotAnswer(
+    private Optional<ChatbotAnswerResult> resolveBotAnswer(
         Long userId,
         ChatbotMessageSendRequest request,
         List<ChatbotHistoryMessage> history,
@@ -334,7 +330,7 @@ public class ChatbotService {
         if (plan.action() == ChatbotAction.ANSWER_DIRECT) {
             return plan.answer() == null || plan.answer().isBlank()
                 ? Optional.empty()
-                : Optional.of(plan.answer());
+                : Optional.of(new ChatbotAnswerResult(plan.answer(), null));
         }
 
         ChatbotAnswerContext context = createAnswerContext(userId, plan, request);
@@ -345,8 +341,12 @@ public class ChatbotService {
         );
 
         return chatbotAiClient.requestAnswer(answerRequest)
-            .map(ChatbotAnswerResponse::answer)
-            .filter(answer -> !answer.isBlank());
+            .filter(answerResponse -> answerResponse.answer() != null
+                && !answerResponse.answer().isBlank())
+            .map(answerResponse -> new ChatbotAnswerResult(
+                answerResponse.answer(),
+                answerResponse.usedReportIds()
+            ));
     }
 
     private ChatbotAnswerContext createAnswerContext(
@@ -393,8 +393,7 @@ public class ChatbotService {
 
         return reportRepository.findAll(
                 specification,
-                PageRequest.of(0, CONTEXT_REPORT_SIZE,
-                    Sort.by(Sort.Direction.DESC, "issueGroup.riskScore"))
+                Sort.by(Sort.Direction.DESC, "issueGroup.riskScore")
             )
             .stream()
             .map(report -> ChatbotReportContext.of(
@@ -411,7 +410,7 @@ public class ChatbotService {
 
         return reportRepository.findAll(
                 specification,
-                PageRequest.of(0, CONTEXT_REPORT_SIZE, Sort.by(Sort.Direction.DESC, "createdAt"))
+                Sort.by(Sort.Direction.DESC, "createdAt")
             )
             .stream()
             .map(report -> ChatbotReportContext.of(report, null, objectMapper))
@@ -459,6 +458,12 @@ public class ChatbotService {
 
     private record ChatbotMessagePreparation(
         List<ChatbotHistoryMessage> history
+    ) {
+    }
+
+    private record ChatbotAnswerResult(
+        String answer,
+        List<Long> usedReportIds
     ) {
     }
 
