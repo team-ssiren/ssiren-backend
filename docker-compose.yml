@@ -17,6 +17,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - ssiren-network
 
   redis:
     image: redis:7-alpine
@@ -28,6 +30,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - ssiren-network
 
   backend:
     build:
@@ -42,6 +46,10 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-ssiren}
       REDIS_HOST: redis
       REDIS_PORT: 6379
+
+      # backend -> ai 내부 통신용
+      AI_BASE_URL: http://ai:8000
+
       JAVA_TOOL_OPTIONS: >-
         -XX:InitialRAMPercentage=50.0
         -XX:MaxRAMPercentage=75.0
@@ -55,6 +63,13 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    networks:
+      - ssiren-network
 
 volumes:
   ssiren-db-data:
+
+networks:
+  ssiren-network:
+    external: true
+    name: ssiren-network
