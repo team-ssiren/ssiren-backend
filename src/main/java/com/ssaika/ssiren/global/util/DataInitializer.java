@@ -408,10 +408,14 @@ public class DataInitializer implements ApplicationRunner {
     private List<FixedIssueGroupSeed> fixedIssueGroupSeeds() {
         return List.of(
                 fixedIssueGroupSeed("죽전동 상가 골목 불법주정차 반복", "상가 진입로와 보행로 주변에 차량이 반복적으로 정차해 차량 교행과 보행 안전에 지장이 있습니다.", "37.3532878", "127.0703683", "30.00", 5),
-                fixedIssueGroupSeed("죽전동 편의점 앞 주취자 불안 신고", "편의점과 벤치 주변에서 주취자가 머물며 고성, 출입 방해, 보행자 접촉 시도가 반복되고 있습니다.", "37.3533378", "127.0703883", "60.00", 3),
+                fixedIssueGroupSeed("죽전동 편의점 앞 주취자 불안 신고", "편의점과 벤치 주변에서 주취자가 머물며 고성, 출입 방해, 보행자 접촉 시도가 반복되고 있습니다.", "37.35334183006072", "127.07047272838471", "60.00", 3),
                 fixedIssueGroupSeed("동편 상가 앞 고성 및 시비", "상가 앞 인도에서 고성과 시비가 이어져 주변 보행자가 우회하고 현장 확인 요청이 반복됩니다.", "37.3533676", "127.0725919", "80.00", 3),
-                fixedIssueGroupSeed("남서쪽 골목 생활폐기물 무단투기", "골목 입구와 상가 뒤편에 종량제 외 폐기물과 음식물 쓰레기가 반복적으로 쌓이고 있습니다.", "37.3514273", "127.0702762", "30.00", 4),
-                fixedIssueGroupSeed("남서쪽 이면도로 불법주정차 반복", "이면도로와 교차로 주변에 차량이 연속 정차해 통행 폭이 좁아지고 진입이 어려운 상황이 반복됩니다.", "37.3514273", "127.0702762", "30.00", 10));
+                fixedIssueGroupSeed("남서쪽 골목 생활폐기물 무단투기", "골목 입구와 상가 뒤편에 종량제 외 폐기물과 음식물 쓰레기가 반복적으로 쌓이고 있습니다.", "37.35140468032911", "127.07036933788841", "30.00", 4),
+                fixedIssueGroupSeed("남서쪽 이면도로 불법주정차 반복", "이면도로와 교차로 주변에 차량이 연속 정차해 통행 폭이 좁아지고 진입이 어려운 상황이 반복됩니다.", "37.3514273", "127.0702762", "30.00", 10),
+                fixedIssueGroupSeed("남서쪽 골목 탄 냄새 신고", "남서쪽 골목 일대에서 원인을 알 수 없는 탄 냄새가 반복적으로 발생해 화재 위험 확인이 필요한 상황입니다.", "37.35115939615951", "127.06995432656991", "75.00", 3),
+                fixedIssueGroupSeed("동편 골목 고라니 사체 신고", "동편 골목 주변에 고라니 사체가 방치되어 악취와 위생 문제가 발생하고 있어 현장 수거가 필요한 상황입니다.", "37.352578950942515", "127.07296357802842", "25.00", 3)
+
+        );
     }
 
     private FixedIssueGroupSeed fixedIssueGroupSeed(
@@ -430,12 +434,12 @@ public class DataInitializer implements ApplicationRunner {
                 fixedReportSeed(0, "보행로 가장자리까지 차량이 올라와 유모차가 차도로 돌아가고 있습니다.", "보행로 침범 주차", "37.3531878", "127.0705083", "30.00", "ILLEGAL_PARKING", "수지구청", "교통과", ReportStatus.SUBMITTED, false),
                 fixedReportSeed(0, "건물 출입구 앞 정차 차량 때문에 사람과 배달 오토바이가 뒤섞입니다.", "출입구 앞 정차", "37.3534478", "127.0702483", "30.00", "ILLEGAL_PARKING", "수지구청", "교통과", ReportStatus.SUBMITTED, false),
                 fixedReportSeed(0, "소방 통로 표시선 안쪽에 차량이 계속 세워져 있습니다.", "소방 통로 주차", "37.3531478", "127.0702883", "30.00", "ILLEGAL_PARKING", "수지구청", "교통과", ReportStatus.SUBMITTED, false),
-                fixedReportSeed(1, "편의점 앞 벤치에서 술에 취한 사람이 계속 소리를 지르고 있습니다.", "편의점 앞 주취자 고성", "37.3535078", "127.0703883", "60.00", "INTOXICATED_PERSON_CONCERN", "용인서부경찰서", "범죄예방대응과", ReportStatus.SUBMITTED, true),
-                fixedReportSeed(1, "주취자가 지나가는 사람에게 말을 걸며 따라붙어 불안합니다.", "보행자 접촉 시도", "37.3530878", "127.0705683", "60.00", "INTOXICATED_PERSON_CONCERN", "용인서부경찰서", "범죄예방대응과", ReportStatus.SUBMITTED, false),
-                fixedReportSeed(1, "출입문 근처에 취객이 앉아 있어 손님들이 들어가기를 꺼립니다.", "출입 방해 주취자", "37.3533378", "127.0701283", "60.00", "INTOXICATED_PERSON_CONCERN", "용인서부경찰서", "범죄예방대응과", ReportStatus.SUBMITTED, false),
-                fixedReportSeed(2, "상가 앞에서 두 사람이 큰 소리로 다투고 있어 보행자가 피하고 있습니다.", "상가 앞 고성 시비", "37.3533676", "127.0725919", "80.00", "DISORDERLY_CONDUCT_DISPUTE", "용인서부경찰서", "범죄예방대응과", ReportStatus.SUBMITTED, true),
-                fixedReportSeed(2, "몸싸움으로 번질 것처럼 서로 밀치고 있어 현장 확인이 필요합니다.", "몸싸움 우려 시비", "37.3535076", "127.0725019", "80.00", "DISORDERLY_CONDUCT_DISPUTE", "용인서부경찰서", "범죄예방대응과", ReportStatus.SUBMITTED, false),
-                fixedReportSeed(2, "인도 한가운데에서 고성이 오가며 사람들이 차도로 돌아가고 있습니다.", "인도 위 고성 다툼", "37.3532476", "127.0727219", "80.00", "DISORDERLY_CONDUCT_DISPUTE", "용인서부경찰서", "범죄예방대응과", ReportStatus.SUBMITTED, false),
+                fixedReportSeed(1, "편의점 앞 벤치에서 술에 취한 사람이 계속 소리를 지르고 있습니다.", "편의점 앞 주취자 고성", "37.3535078", "127.0703883", "60.00", "INTOXICATED_PERSON_CONCERN", "용인서부경찰서", "수지지구대", ReportStatus.SUBMITTED, true),
+                fixedReportSeed(1, "주취자가 지나가는 사람에게 말을 걸며 따라붙어 불안합니다.", "보행자 접촉 시도", "37.3530878", "127.0705683", "60.00", "INTOXICATED_PERSON_CONCERN", "용인서부경찰서", "수지지구대", ReportStatus.SUBMITTED, false),
+                fixedReportSeed(1, "출입문 근처에 취객이 앉아 있어 손님들이 들어가기를 꺼립니다.", "출입 방해 주취자", "37.3533378", "127.0701283", "60.00", "INTOXICATED_PERSON_CONCERN", "용인서부경찰서", "수지지구대", ReportStatus.SUBMITTED, false),
+                fixedReportSeed(2, "상가 앞에서 두 사람이 큰 소리로 다투고 있어 보행자가 피하고 있습니다.", "상가 앞 고성 시비", "37.3533676", "127.0725919", "80.00", "DISORDERLY_CONDUCT_DISPUTE", "용인서부경찰서", "수지지구대", ReportStatus.SUBMITTED, true),
+                fixedReportSeed(2, "몸싸움으로 번질 것처럼 서로 밀치고 있어 현장 확인이 필요합니다.", "몸싸움 우려 시비", "37.3535076", "127.0725019", "80.00", "DISORDERLY_CONDUCT_DISPUTE", "용인서부경찰서", "수지지구대", ReportStatus.SUBMITTED, false),
+                fixedReportSeed(2, "인도 한가운데에서 고성이 오가며 사람들이 차도로 돌아가고 있습니다.", "인도 위 고성 다툼", "37.3532476", "127.0727219", "80.00", "DISORDERLY_CONDUCT_DISPUTE", "용인서부경찰서", "수지지구대", ReportStatus.SUBMITTED, false),
                 fixedReportSeed(3, "골목 입구에 종량제 봉투가 아닌 생활폐기물이 쌓여 있습니다.", "생활폐기물 무단 적치", "37.3514273", "127.0702762", "30.00", "WASTE_AND_DEBRIS", "수지구청", "산업환경과", ReportStatus.SUBMITTED, true),
                 fixedReportSeed(3, "상가 뒤편에 박스와 비닐류가 며칠째 치워지지 않고 있습니다.", "상가 뒤편 폐기물", "37.3515573", "127.0704162", "30.00", "WASTE_AND_DEBRIS", "수지구청", "산업환경과", ReportStatus.SUBMITTED, false),
                 fixedReportSeed(3, "음식물 쓰레기 봉투가 터져 냄새가 골목까지 퍼집니다.", "음식물 쓰레기 방치", "37.3512873", "127.0703962", "30.00", "WASTE_AND_DEBRIS", "수지구청", "산업환경과", ReportStatus.SUBMITTED, false),
@@ -449,7 +453,14 @@ public class DataInitializer implements ApplicationRunner {
                 fixedReportSeed(4, "배송 차량이 장시간 정차해 뒤 차량들이 중앙선을 넘어갑니다.", "배송 차량 장시간 정차", "37.3512973", "127.0704262", "30.00", "ILLEGAL_PARKING", "수지구청", "교통과", ReportStatus.SUBMITTED, false),
                 fixedReportSeed(4, "소화전 주변에 차량이 세워져 긴급 상황이 걱정됩니다.", "소화전 주변 주차", "37.3516273", "127.0704862", "30.00", "ILLEGAL_PARKING", "수지구청", "교통과", ReportStatus.SUBMITTED, false),
                 fixedReportSeed(4, "골목 입구 정차 차량 때문에 택배차가 들어오지 못하고 있습니다.", "골목 입구 정차", "37.3512173", "127.0700562", "30.00", "ILLEGAL_PARKING", "수지구청", "교통과", ReportStatus.SUBMITTED, false),
-                fixedReportSeed(4, "주정차 금지 표지 아래 같은 차량이 반복적으로 서 있습니다.", "금지구역 반복 주차", "37.3516773", "127.0702462", "30.00", "ILLEGAL_PARKING", "수지구청", "교통과", ReportStatus.SUBMITTED, false));
+                fixedReportSeed(4, "주정차 금지 표지 아래 같은 차량이 반복적으로 서 있습니다.", "금지구역 반복 주차", "37.3516773", "127.0702462", "30.00", "ILLEGAL_PARKING", "수지구청", "교통과", ReportStatus.SUBMITTED, false),
+                fixedReportSeed(5, "골목 안쪽에서 탄 냄새가 계속 납니다.", "탄 냄새", "37.35115939615951", "127.06995432656991", "75.00", "FIRE_RISK", "용인서부소방서", "119구조대", ReportStatus.SUBMITTED, true),
+                fixedReportSeed(5, "주택가 담장 근처에서 플라스틱이 타는 듯한 냄새가 납니다.", "탄 냄새", "37.35121939615951", "127.06999432656991", "75.00", "FIRE_RISK", "용인서부소방서", "119구조대", ReportStatus.SUBMITTED, false),
+                fixedReportSeed(5, "골목을 지날 때마다 매캐한 탄 냄새가 느껴져 확인이 필요합니다.", "탄 냄새", "37.35109939615951", "127.06990432656991", "75.00", "FIRE_RISK", "용인서부소방서", "119구조대", ReportStatus.SUBMITTED, false),
+                fixedReportSeed(6, "골목 옆 공터에 고라니 사체가 방치되어 있습니다.", "고라니 사체 죽음", "37.352578950942515", "127.07296357802842", "45.00", "STRAY_OR_DANGEROUS_ANIMAL", "수지구청", "도시미관과", ReportStatus.SUBMITTED, true),
+                fixedReportSeed(6, "길가 근처에서 죽은 고라니로 보이는 사체가 보여 악취가 납니다.", "고라니 사체 죽음", "37.35263895094252", "127.07301357802842", "45.00", "STRAY_OR_DANGEROUS_ANIMAL", "수지구청", "도시미관과", ReportStatus.SUBMITTED, false),
+                fixedReportSeed(6, "보행로 주변에 고라니 사체가 있어 위생상 수거가 필요합니다.", "고라니 사체 죽음", "37.35251895094251", "127.07290357802842", "45.00", "STRAY_OR_DANGEROUS_ANIMAL", "수지구청", "도시미관과", ReportStatus.SUBMITTED, false)
+                );
     }
 
     private FixedReportSeed fixedReportSeed(
