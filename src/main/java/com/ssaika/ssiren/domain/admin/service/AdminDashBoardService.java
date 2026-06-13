@@ -112,7 +112,7 @@ public class AdminDashBoardService {
 
         List<AdminDashboardDenseAreaItemResponse> denseAreas = groupedPoints.entrySet()
                 .stream()
-                .filter(entry -> entry.getValue().size() >= minIssueGroupCount)
+                .filter(entry -> sumVisibleReportCount(entry.getValue()) >= minIssueGroupCount)
                 .map(entry -> toDenseAreaItem(entry.getKey(), entry.getValue(), swLat, swLng,
                         gridLatSize, gridLngSize))
                 .sorted((left, right) -> Long.compare(right.issueGroupCount(), left.issueGroupCount()))
@@ -202,7 +202,7 @@ public class AdminDashBoardService {
                 .orElse((cellSwLng + cellNeLng) / 2.0);
 
         return new AdminDashboardDenseAreaItemResponse(
-                (long) points.size(),
+                sumVisibleReportCount(points),
                 BigDecimal.valueOf(centerLat),
                 BigDecimal.valueOf(centerLng),
                 new AdminDashboardDenseAreaBoundsResponse(
@@ -212,6 +212,13 @@ public class AdminDashBoardService {
                         BigDecimal.valueOf(cellNeLng)
                 )
         );
+    }
+
+    private long sumVisibleReportCount(List<AdminDashboardIssueGroupPointProjection> points) {
+        return points.stream()
+                .map(AdminDashboardIssueGroupPointProjection::getReportCount)
+                .mapToLong(reportCount -> reportCount == null ? 0L : reportCount)
+                .sum();
     }
 
     private record GridKey(
