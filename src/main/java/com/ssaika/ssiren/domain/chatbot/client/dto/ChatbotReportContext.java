@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssaika.ssiren.domain.report.entity.Report;
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 
 public record ChatbotReportContext(
     Long reportId,
@@ -14,7 +13,7 @@ public record ChatbotReportContext(
     String address,
     BigDecimal riskScore,
     BigDecimal distanceMeters,
-    LocalDateTime recentReportedAt
+    String recentReportedAt
 ) {
 
     public static ChatbotReportContext of(
@@ -29,7 +28,7 @@ public record ChatbotReportContext(
             resolveAddress(report),
             report.getIssueGroup().getRiskScore(),
             distanceMeters,
-            report.getIssueGroup().getRecentReportedAt()
+            report.getIssueGroup().getRecentReportedAt().toString()
         );
     }
 

@@ -209,8 +209,9 @@ class ChatbotServiceTest {
 
         ChatbotMessageSendResponse response = chatbotService.saveChatbotMessage(1L, 1L, request);
 
-        assertThat(response.session().title()).isEqualTo("인근 위험 제보 문의");
-        assertThat(response.messages()).hasSize(2);
+        assertThat(response.answer()).isEqualTo(botAnswer);
+        assertThat(response.usedReportIds()).isNull();
+        assertThat(session.getTitle()).isEqualTo("인근 위험 제보 문의");
         verify(chatbotAiClient).requestTitle(ArgumentMatchers.any());
     }
 
@@ -254,7 +255,9 @@ class ChatbotServiceTest {
 
         ChatbotMessageSendResponse response = chatbotService.saveChatbotMessage(1L, 1L, request);
 
-        assertThat(response.session().title()).isEqualTo("인근 위험 제보 문의");
+        assertThat(response.answer()).isEqualTo(botAnswer);
+        assertThat(response.usedReportIds()).isNull();
+        assertThat(session.getTitle()).isEqualTo("인근 위험 제보 문의");
         verify(chatbotAiClient).requestTitle(ArgumentMatchers.any());
     }
 
@@ -314,7 +317,6 @@ class ChatbotServiceTest {
 
     @Test
     void saveChatbotMessageGeneratesSessionTitleOnFirstMessage() {
-        LocalDateTime createdAt = LocalDateTime.of(2026, 6, 9, 13, 0);
         ChatbotMessageSendRequest request = new ChatbotMessageSendRequest(
             "불법주정차 신고하고 싶어",
             new BigDecimal("36.36"),
@@ -334,17 +336,8 @@ class ChatbotServiceTest {
         when(chatbotMessageRepository.save(ArgumentMatchers.any()))
             .thenReturn(firstMessage, secondMessage);
         when(chatbotSession.getTitle()).thenReturn("새 대화");
-        when(chatbotSession.getCreatedAt()).thenReturn(createdAt);
         when(chatbotAiClient.requestTitle(ArgumentMatchers.any()))
             .thenReturn(Optional.of(new ChatbotTitleResponse(" 불법주정차 ")));
-        when(firstMessage.getId()).thenReturn(1L);
-        when(firstMessage.getSenderType()).thenReturn(ChatbotSenderType.USER);
-        when(firstMessage.getMessage()).thenReturn("불법주정차 신고하고 싶어");
-        when(firstMessage.getCreatedAt()).thenReturn(createdAt);
-        when(secondMessage.getId()).thenReturn(2L);
-        when(secondMessage.getSenderType()).thenReturn(ChatbotSenderType.BOT);
-        when(secondMessage.getMessage()).thenReturn("안내해 드릴게요.");
-        when(secondMessage.getCreatedAt()).thenReturn(createdAt);
 
         chatbotService.saveChatbotMessage(1L, 1L, request);
 
