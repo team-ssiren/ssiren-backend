@@ -12,5 +12,5 @@ public interface ReportReactionLogRepository extends JpaRepository<ReportReactio
     List<ReportReactionLog> findByReport_IdOrderByCreatedAtAsc(Long reportId);
 
     @EntityGraph(attributePaths = {"report", "user"})
-    Optional<ReportReactionLog> findByReport_IdAndUser_Id(Long reportId, Long userId);
+    Optional<ReportReactionLog> findFirstByReport_IdAndUser_IdOrderByCreatedAtDesc(Long reportId, Long userId);
 }

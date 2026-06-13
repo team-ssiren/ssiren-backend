@@ -75,6 +75,7 @@ public class ReportService {
     private final ReportImageRepository reportImageRepository;
     private final ReportStatusHistoryRepository reportStatusHistoryRepository;
     private final ReportReactionLogRepository reportReactionLogRepository;
+    private final ReportReactionDailyLimitRepository reportReactionDailyLimitRepository;
     private final UserRepository userRepository;
     private final DepartmentRepository departmentRepository;
     private final ObjectMapper objectMapper;
@@ -649,27 +650,39 @@ public class ReportService {
             .orElseThrow(() -> new CustomException("?쒕낫瑜?李얠쓣 ???놁뒿?덈떎.", ErrorCode.NOT_FOUND));
 
         IssueGroup issueGroup = report.getIssueGroup();
+        ReportReactionType reactionType = ReportReactionType.YES;
+        Integer previousYesCount = issueGroup.getYesCount();
+        boolean isFirstReactionToday = reportReactionDailyLimitRepository.markIfAbsent(reportId, userId);
 
-        ReportReactionLog reactionLog = reportReactionLogRepository
-            .findByReport_IdAndUser_Id(reportId, userId)
-            .map(existingReactionLog -> {
-                ReportReactionType previousReactionType =
-                    existingReactionLog.updateReactionType(request.reactionType());
-                issueGroup.applyReaction(previousReactionType, request.reactionType());
-                return existingReactionLog;
-            })
-            .orElseGet(() -> {
-                ReportReactionLog newReactionLog = ReportReactionLog.create(
-                    report,
-                    user,
-                    request.reactionType()
-                );
-                issueGroup.applyReaction(null, request.reactionType());
-                return reportReactionLogRepository.save(newReactionLog);
-            });
+        log.info(
+            "Report reaction daily limit checked. userId={}, reportId={}, issueGroupId={}, isFirstReactionToday={}, yesCountBefore={}",
+            userId,
+            reportId,
+            issueGroup.getId(),
+            isFirstReactionToday,
+            previousYesCount
+        );
+
+        if (!isFirstReactionToday) {
+            throw new CustomException("이미 공감한 제보입니다! 하루 뒤에 다시 시도해주세요!", ErrorCode.DUPLICATE_RESOURCE);
+        }
+
+        ReportReactionLog reactionLog = reportReactionLogRepository.save(
+            ReportReactionLog.create(report, user, reactionType)
+        );
+        issueGroup.applyReaction(null, reactionType);
 
         issueGroupRepository.saveAndFlush(issueGroup);
         reportReactionLogRepository.flush();
+
+        log.info(
+            "Report reaction applied. userId={}, reportId={}, issueGroupId={}, yesCountBefore={}, yesCountAfter={}",
+            userId,
+            reportId,
+            issueGroup.getId(),
+            previousYesCount,
+            issueGroup.getYesCount()
+        );
 
         return ReportReactionResponse.from(reactionLog, report, objectMapper);
     }
